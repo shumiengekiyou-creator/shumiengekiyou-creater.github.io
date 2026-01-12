@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>シフト給与メモ</title>
+</head>
+<body style="font-family: system-ui, -apple-system, sans-serif; padding: 24px; line-height: 1.5;">
+  <h1>シフト給与メモ</h1>
+  <p style="color:#555;">
+    ※このデータはブラウザ（このPC）に保存されます（localStorage）。他の人に自動共有はされません。
+  </p>
+
+  <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin:16px 0;">
+    <label>
+      月（表示）
+      <br />
+      <input id="monthFilter" type="month" />
+    </label>
+
+    <div style="flex:1; min-width:260px;"></div>
+
+    <button id="exportCsvBtn" style="padding:10px 14px;">CSV出力</button>
+    <button id="clearBtn" style="padding:10px 14px; background:#ffe5e5;">全削除（このPC保存分）</button>
+  </div>
+
+  <hr />
+
+  <h2>追加</h2>
+
+  <div style="display:grid; grid-template-columns: 160px 140px 140px 160px 160px 1fr; gap:10px; align-items:end;">
+    <label>
+      日付
+      <br />
+      <input id="date" type="date" />
+    </label>
+
+    <label>
+      開始
+      <br />
+      <input id="start" type="time" />
+    </label>
+
+    <label>
+      終了
+      <br />
+      <input id="end" type="time" />
+    </label>
+
+    <label>
+      休憩（分）
+      <br />
+      <input id="breakMin" type="number" min="0" step="5" placeholder="例: 60" />
+    </label>
+
+    <label>
+      時給（円）
+      <br />
+      <input id="hourly" type="number" min="0" step="10" placeholder="例: 1100" />
+    </label>
+
+    <label>
+      交通費（円）
+      <br />
+      <input id="transport" type="number" min="0" step="10" placeholder="例: 200" />
+    </label>
+
+    <label style="grid-column: 1 / span 6;">
+      メモ（任意）
+      <br />
+      <input id="memo" type="text" placeholder="例: 倉庫A / 仕分け / 残業あり" style="width:100%;" />
+    </label>
+
+    <div style="grid-column: 1 / span 6;">
+      <button id="addBtn" style="padding:10px 14px;">追加する</button>
+      <span id="msg" style="margin-left:10px; color:#b00;"></span>
+    </div>
+  </div>
+
+  <hr style="margin:24px 0;" />
+
+  <h2>集計（表示中の月）</h2>
+  <div id="summary" style="padding:12px; background:#f6f6f6; border-radius:8px;"></div>
+
+  <h2 style="margin-top:24px;">明細</h2>
+  <div style="overflow:auto;">
+    <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; min-width: 980px; width:100%;">
+      <thead>
+        <tr style="background:#f0f0f0;">
+          <th>日付</th>
+          <th>開始</th>
+          <th>終了</th>
+          <th>休憩</th>
+          <th>勤務時間</th>
+          <th>時給</th>
+          <th>勤務分</th>
+          <th>交通費</th>
+          <th>合計</th>
+          <th>メモ</th>
+          <th>削除</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "shift_entries_v1";
+
+    /** @type {Array<{id:string,date:string,start:string,end:string,breakMin:number,hourly:number,transport:number,memo:string}>} */
+    let entries = [];
+
+    const el = (id) => document.getElementById(id);
+
+    function nowMonthValue() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      return `${y}-${m}`;
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        entries = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(entries)) entries = [];
+      } catch {
+        entries = [];
+      }
+    }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    }
+
+    function fmtYen(n) {
+      return (Math.round(n) || 0).toLocaleString("ja-JP") + "円";
+    }
+
+    function minutesBetween(startHHMM, endHHMM) {
+      // start/end: "HH:MM"
+      const [sh, sm] = startHHMM.split(":").map(Number);
+      const [eh, em] = endHHMM.split(":").map(Number);
+      if ([sh, sm, eh, em].some(Number.isNaN)) return null;
+
+      let startMin = sh * 60 + sm;
+      let endMin = eh * 60 + em;
+
+      // 翌日跨ぎ対応（終わりが開始より小さければ+24h）
+      if (endMin < startMin) endMin += 24 * 60;
+
+      return endMin - startMin;
+    }
+
+    function calc(entry) {
+      const totalMin = minutesBetween(entry.start, entry.end);
+      if (totalMin === null) return null;
+
+      const breakMin = Math.max(0, Number(entry.breakMin || 0));
+      const paidMin = Math.max(0, totalMin - breakMin);
+
+      const hours = paidMin / 60;
+      const hourly = Math.max(0, Number(entry.hourly || 0));
+      const transport = Math.max(0, Number(entry.transport || 0));
+
+      const wage = hours * hourly;
+      const total = wage + transport;
+
+      return { totalMin, breakMin, paidMin, hours, wage, transport, total };
+    }
+
+    function monthOf(dateStr) {
+      // "YYYY-MM-DD" -> "YYYY-MM"
+      return (dateStr || "").slice(0, 7);
+    }
+
+    function filtered() {
+      const m = el("monthFilter").value;
+      return entries
+        .filter(e => monthOf(e.date) === m)
+        .sort((a,b) => (a.date + a.start).localeCompare(b.date + b.start));
+    }
+
+    function render() {
+      const tbody = el("rows");
+      tbody.innerHTML = "";
+
+      const list = filtered();
+
+      let sumPaidMin = 0;
+      let sumWage = 0;
+      let sumTransport = 0;
+      let sumTotal = 0;
+
+      for (const e of list) {
+        const c = calc(e);
+
+        let workText = "—";
+        let wageText = "—";
+        let totalText = "—";
+
+        if (c) {
+          sumPaidMin += c.paidMin;
+          sumWage += c.wage;
+          sumTransport += c.transport;
+          sumTotal += c.total;
+
+          const hh = Math.floor(c.paidMin / 60);
+          const mm = c.paidMin % 60;
+          workText = `${hh}時間${String(mm).padStart(2,"0")}分`;
+          wageText = fmtYen(c.wage);
+          totalText = fmtYen(c.total);
+        }
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${escapeHtml(e.date || "")}</td>
+          <td>${escapeHtml(e.start || "")}</td>
+          <td>${escapeHtml(e.end || "")}</td>
+          <td>${Number(e.breakMin || 0)}分</td>
+          <td>${workText}</td>
+          <td>${fmtYen(Number(e.hourly || 0))}</td>
+          <td>${wageText}</td>
+          <td>${fmtYen(Number(e.transport || 0))}</td>
+          <td>${totalText}</td>
+          <td>${escapeHtml(e.memo || "")}</td>
+          <td><button data-del="${e.id}">削除</button></td>
+        `;
+
+        tbody.appendChild(tr);
+      }
+
+      const hh = Math.floor(sumPaidMin / 60);
+      const mm = sumPaidMin % 60;
+
+      el("summary").innerHTML = `
+        <div>件数： <b>${list.length}</b> 件</div>
+        <div>合計勤務時間（休憩差引）： <b>${hh}時間${String(mm).padStart(2,"0")}分</b></div>
+        <div>勤務分合計： <b>${fmtYen(sumWage)}</b></div>
+        <div>交通費合計： <b>${fmtYen(sumTransport)}</b></div>
+        <div style="margin-top:8px; font-size:1.1em;">合計見込み： <b>${fmtYen(sumTotal)}</b></div>
+      `;
+
+      // delete handlers
+      tbody.querySelectorAll("button[data-del]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-del");
+          entries = entries.filter(x => x.id !== id);
+          save();
+          render();
+        });
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function setDefaults() {
+      el("monthFilter").value = nowMonthValue();
+
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      el("date").value = `${yyyy}-${mm}-${dd}`;
+
+      el("breakMin").value = "0";
+      el("transport").value = "0";
+    }
+
+    function addEntry() {
+      const msg = el("msg");
+      msg.textContent = "";
+
+      const date = el("date").value;
+      const start = el("start").value;
+      const end = el("end").value;
+      const breakMin = Number(el("breakMin").value || 0);
+      const hourly = Number(el("hourly").value || 0);
+      const transport = Number(el("transport").value || 0);
+      const memo = el("memo").value || "";
+
+      if (!date || !start || !end) {
+        msg.textContent = "日付・開始・終了は必須です。";
+        return;
+      }
+      if (hourly <= 0) {
+        msg.textContent = "時給を入れてね（0より大きく）。";
+        return;
+      }
+
+      const totalMin = minutesBetween(start, end);
+      if (totalMin === null) {
+        msg.textContent = "時間の形式が変です。";
+        return;
+      }
+      if (breakMin < 0 || breakMin > totalMin) {
+        msg.textContent = "休憩分が多すぎます。";
+        return;
+      }
+
+      const id = String(Date.now()) + "_" + Math.random().toString(16).slice(2);
+
+      entries.push({
+        id, date, start, end,
+        breakMin: Math.max(0, Math.floor(breakMin)),
+        hourly: Math.max(0, Math.floor(hourly)),
+        transport: Math.max(0, Math.floor(transport)),
+        memo
+      });
+
+      save();
+      // 表示月を入力した日付の月に合わせる
+      el("monthFilter").value = monthOf(date);
+      render();
+
+      // 入力欄クリア（最低限）
+      el("start").value = "";
+      el("end").value = "";
+      el("memo").value = "";
+      msg.style.color = "#0a0";
+      msg.textContent = "追加しました！";
+      setTimeout(() => { msg.textContent = ""; msg.style.color = "#b00"; }, 1200);
+    }
+
+    function exportCsv() {
+      const list = filtered().map(e => {
+        const c = calc(e);
+        const paidMin = c ? c.paidMin : 0;
+        const paidHours = c ? (c.paidMin / 60) : 0;
+        const wage = c ? c.wage : 0;
+        const total = c ? c.total : 0;
+
+        return [
+          e.date, e.start, e.end,
+          String(Number(e.breakMin || 0)),
+          String(paidMin),
+          paidHours.toFixed(2),
+          String(Number(e.hourly || 0)),
+          Math.round(wage).toString(),
+          String(Number(e.transport || 0)),
+          Math.round(total).toString(),
+          (e.memo || "").replaceAll('"','""')
+        ];
+      });
+
+      const header = ["date","start","end","breakMin","paidMin","paidHours","hourly","wage","transport","total","memo"];
+      const lines = [header, ...list].map(row => row.map(v => `"${v}"`).join(",")).join("\n");
+      const blob = new Blob([lines], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `shifts_${el("monthFilter").value}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    // init
+    load();
+    setDefaults();
+    render();
+
+    el("addBtn").addEventListener("click", addEntry);
+    el("monthFilter").addEventListener("change", render);
+    el("exportCsvBtn").addEventListener("click", exportCsv);
+
+    el("clearBtn").addEventListener("click", () => {
+      if (!confirm("このPCの保存分を全部消します。OK？")) return;
+      entries = [];
+      save();
+      render();
+    });
+  </script>
+</body>
+</html>
