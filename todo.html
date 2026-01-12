@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ToDo</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 24px; }
+    h1 { margin: 0 0 12px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    input[type="text"] { flex: 1; min-width: 220px; padding: 10px; }
+    button { padding: 10px 14px; cursor: pointer; }
+    ul { list-style: none; padding: 0; margin-top: 16px; }
+    li { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 10px; }
+    li.done .text { text-decoration: line-through; opacity: 0.5; }
+    .text { flex: 1; }
+    .small { opacity: 0.7; font-size: 14px; margin-top: 8px; }
+    a { display: inline-block; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <h1>ToDo</h1>
+
+  <div class="row">
+    <input id="todoInput" type="text" placeholder="例：HTML/CSS 30分、買い物、応募書類…" />
+    <button id="addBtn">追加</button>
+    <button id="clearDoneBtn">完了を一括削除</button>
+  </div>
+
+  <div class="small">
+    未完了：<span id="leftCount">0</span> 件
+  </div>
+
+  <ul id="list"></ul>
+
+  <a href="./index.html">← トップへ</a>
+
+  <script>
+    const STORAGE_KEY = "my_todos_v1";
+
+    /** @type {{id:string, text:string, done:boolean}[]} */
+    let todos = load();
+
+    const $input = document.getElementById("todoInput");
+    const $list = document.getElementById("list");
+    const $left = document.getElementById("leftCount");
+
+    document.getElementById("addBtn").addEventListener("click", addTodo);
+    document.getElementById("clearDoneBtn").addEventListener("click", clearDone);
+    $input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") addTodo();
+    });
+
+    render();
+
+    function addTodo() {
+      const text = $input.value.trim();
+      if (!text) return;
+
+      todos.unshift({
+        id: crypto.randomUUID(),
+        text,
+        done: false
+      });
+
+      $input.value = "";
+      save();
+      render();
+    }
+
+    function toggleTodo(id) {
+      const t = todos.find(x => x.id === id);
+      if (!t) return;
+      t.done = !t.done;
+      save();
+      render();
+    }
+
+    function deleteTodo(id) {
+      todos = todos.filter(x => x.id !== id);
+      save();
+      render();
+    }
+
+    function clearDone() {
+      todos = todos.filter(x => !x.done);
+      save();
+      render();
+    }
+
+    function render() {
+      $list.innerHTML = "";
+      let left = 0;
+
+      for (const t of todos) {
+        if (!t.done) left++;
+
+        const li = document.createElement("li");
+        if (t.done) li.classList.add("done");
+
+        const chk = document.createElement("input");
+        chk.type = "checkbox";
+        chk.checked = t.done;
+        chk.addEventListener("change", () => toggleTodo(t.id));
+
+        const span = document.createElement("span");
+        span.className = "text";
+        span.textContent = t.text;
+
+        const del = document.createElement("button");
+        del.textContent = "削除";
+        del.addEventListener("click", () => deleteTodo(t.id));
+
+        li.appendChild(chk);
+        li.appendChild(span);
+        li.appendChild(del);
+        $list.appendChild(li);
+      }
+
+      $left.textContent = left;
+    }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    }
+  </script>
+</body>
+</html>
