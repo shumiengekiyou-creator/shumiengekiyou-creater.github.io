@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>家計メモ</title>
+  <style>
+    body { font-family: sans-serif; margin: 24px; max-width: 900px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    input, select, button { padding: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+    th, td { border-bottom: 1px solid #ddd; padding: 10px; text-align: left; }
+    .meta { color: #666; font-size: 0.9em; }
+    .right { text-align: right; }
+    .danger { background: #fff2f2; border: 1px solid #ffd1d1; }
+  </style>
+</head>
+<body>
+  <h1>家計メモ</h1>
+  <p class="meta">※この家計メモはブラウザ（このPC）に保存されます（localStorage）。</p>
+  <p><a href="index.html">← トップへ</a></p>
+
+  <div class="row">
+    <input id="date" type="date">
+    <select id="type">
+      <option value="支出">支出</option>
+      <option value="収入">収入</option>
+    </select>
+    <input id="cat" type="text" placeholder="カテゴリ（例：食費）" style="min-width:160px;">
+    <input id="memo" type="text" placeholder="メモ（例：スーパー）" style="flex:1; min-width:220px;">
+    <input id="yen" type="number" placeholder="金額" style="width:120px;">
+    <button id="add">追加</button>
+  </div>
+
+  <div class="row" style="margin-top:12px;">
+    <button id="clear" class="danger">全削除（このPCの保存分）</button>
+  </div>
+
+  <h2>集計</h2>
+  <div class="row">
+    <div>収入：<strong id="in">0</strong> 円</div>
+    <div>支出：<strong id="out">0</strong> 円</div>
+    <div>差額：<strong id="bal">0</strong> 円</div>
+  </div>
+
+  <h2>明細</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>日付</th><th>種別</th><th>カテゴリ</th><th>メモ</th><th class="right">金額</th><th></th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+<script>
+  const KEY = "my_kakei_v1";
+  const $ = (id) => document.getElementById(id);
+
+  function load(){ try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return[]} }
+  function save(arr){ localStorage.setItem(KEY, JSON.stringify(arr)); }
+
+  function render(){
+    const rows = load();
+    const tb = $("tbody");
+    tb.innerHTML = "";
+
+    let income = 0, expense = 0;
+
+    rows.forEach((r, i) => {
+      const tr = document.createElement("tr");
+      const amt = Number(r.yen || 0);
+      if (r.type === "収入") income += amt; else expense += amt;
+
+      tr.innerHTML = `
+        <td>${r.date || ""}</td>
+        <td>${r.type}</td>
+        <td>${escapeHtml(r.cat)}</td>
+        <td>${escapeHtml(r.memo)}</td>
+        <td class="right">${amt.toLocaleString()}</td>
+        <td><button data-i="${i}">削除</button></td>
+      `;
+      tr.querySelector("button").onclick = () => {
+        const arr = load();
+        arr.splice(i,1);
+        save(arr);
+        render();
+      };
+      tb.appendChild(tr);
+    });
+
+    $("in").textContent = income.toLocaleString();
+    $("out").textContent = expense.toLocaleString();
+    $("bal").textContent = (income - expense).toLocaleString();
+  }
+
+  function escapeHtml(s){
+    return (s ?? "").replace(/[&<>"']/g, (c) =>
+      ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])
+    );
+  }
+
+  // 初期日付を今日に
+  $("date").valueAsDate = new Date();
+
+  $("add").onclick = () => {
+    const date = $("date").value;
+    const type = $("type").value;
+    const cat = $("cat").value.trim();
+    const memo = $("memo").value.trim();
+    const yen = Number($("yen").value);
+    if (!date || !yen) { alert("日付と金額は必須だよ！"); return; }
+
+    const arr = load();
+    arr.push({ date, type, cat, memo, yen });
+    save(arr);
+
+    $("cat").value = "";
+    $("memo").value = "";
+    $("yen").value = "";
+    render();
+  };
+
+  $("clear").onclick = () => {
+    if (confirm("このPCに保存されている家計メモを全削除します。OK？")) {
+      localStorage.removeItem(KEY);
+      render();
+    }
+  };
+
+  render();
+</script>
+</body>
+</html>
