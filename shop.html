@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>店ミニ管理ツール</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 24px; max-width: 980px; }
+    h1 { margin: 0 0 8px; }
+    .meta { opacity: .7; font-size: 14px; margin: 0 0 16px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    @media (min-width: 880px) { .grid { grid-template-columns: 1fr 1fr; } }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    input, textarea, select, button { padding: 10px; font-size: 16px; }
+    input, textarea, select { border: 1px solid #ccc; border-radius: 10px; }
+    textarea { width: 100%; min-height: 70px; }
+    button { border: 1px solid #ccc; border-radius: 12px; background: #fff; cursor: pointer; }
+    .danger { background: #fff2f2; border-color: #ffd1d1; }
+    ul { list-style: none; padding: 0; margin: 10px 0 0; }
+    li { border-top: 1px solid #eee; padding: 10px 0; display: flex; gap: 10px; align-items: flex-start; }
+    .spacer { flex: 1; }
+    .pill { border: 1px solid #ddd; border-radius: 999px; padding: 2px 8px; font-size: 12px; opacity: .75; }
+    label { display: block; font-size: 12px; opacity: .75; margin: 10px 0 6px; }
+    a { text-decoration: none; }
+    .small { font-size: 12px; opacity: .7; }
+    .done { text-decoration: line-through; opacity: .55; }
+  </style>
+</head>
+<body>
+  <h1>店ミニ管理ツール</h1>
+  <p class="meta">開店/閉店チェック＋予約メモ（保存：このPCのブラウザ内）</p>
+  <p><a href="./">← トップへ</a></p>
+
+  <div class="grid">
+    <!-- 開店 -->
+    <section class="card">
+      <h2>開店チェック</h2>
+      <div class="small">チェックは自動保存されます。</div>
+      <ul id="openList"></ul>
+      <div class="row" style="margin-top:10px;">
+        <button id="openAllOff">開店チェックを全解除</button>
+      </div>
+    </section>
+
+    <!-- 閉店 -->
+    <section class="card">
+      <h2>閉店チェック</h2>
+      <div class="small">チェックは自動保存されます。</div>
+      <ul id="closeList"></ul>
+      <div class="row" style="margin-top:10px;">
+        <button id="closeAllOff">閉店チェックを全解除</button>
+      </div>
+    </section>
+
+    <!-- 予約メモ -->
+    <section class="card" style="grid-column: 1 / -1;">
+      <h2>予約メモ</h2>
+
+      <div class="row">
+        <div style="flex:1; min-width:220px;">
+          <label>お名前</label>
+          <input id="r_name" type="text" placeholder="例：田中" style="width:100%;">
+        </div>
+        <div style="width:140px;">
+          <label>人数</label>
+          <input id="r_people" type="number" min="1" placeholder="例：2" style="width:100%;">
+        </div>
+        <div style="flex:1; min-width:220px;">
+          <label>日時</label>
+          <input id="r_when" type="text" placeholder="例：1/20 19:00" style="width:100%;">
+        </div>
+      </div>
+
+      <label>メモ（アレルギー/席希望など）</label>
+      <textarea id="r_note" placeholder="例：子ども椅子1、アレルギーなし"></textarea>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="addRes">予約を追加</button>
+        <button id="clearDoneRes">完了（来店済）を一括削除</button>
+        <button id="resetAll" class="danger">全リセット（注意）</button>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div>未完了：<strong id="resLeft">0</strong> 件</div>
+        <span class="spacer"></span>
+        <span class="pill">保存: localStorage</span>
+      </div>
+
+      <ul id="resList"></ul>
+    </section>
+  </div>
+
+<script>
+  // ===== 保存キー =====
+  const KEY_OPEN  = "shop_open_v1";
+  const KEY_CLOSE = "shop_close_v1";
+  const KEY_RES   = "shop_res_v1";
+
+  // ===== 初期チェック項目（ここは好きに増減OK） =====
+  const OPEN_ITEMS = [
+    "レジ起動・釣銭確認",
+    "店内清掃（床・テーブル）",
+    "ゴミ回収",
+    "BGM・照明",
+    "在庫/仕込み確認",
+    "予約確認",
+    "トイレ確認"
+  ];
+
+  const CLOSE_ITEMS = [
+    "レジ締め",
+    "片付け（テーブル/床）",
+    "ゴミ出し",
+    "冷蔵庫/火元/電源チェック",
+    "在庫メモ・発注メモ",
+    "戸締まり"
+  ];
+
+  // ===== ユーティリティ =====
+  const $ = (id) => document.getElementById(id);
+
+  function load(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  function save(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+  function uid() {
+    return (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
+  }
+  function escapeHtml(s){
+    return (s ?? "").replace(/[&<>"']/g, (c) =>
+      ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])
+    );
+  }
+
+  // ===== 開店/閉店チェック =====
+  function initChecklist(key, items, listElId, offBtnId) {
+    const state = load(key, {});
+    const listEl = $(listElId);
+    listEl.innerHTML = "";
+
+    items.forEach((text, idx) => {
+      const id = `${key}_${idx}`;
+      const li = document.createElement("li");
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!state[id];
+      cb.onchange = () => {
+        state[id] = cb.checked;
+        save(key, state);
+        renderChecklist(); // 見た目更新（線引き）
+      };
+
+      const span = document.createElement("span");
+      span.textContent = text;
+
+      li.appendChild(cb);
+      li.appendChild(span);
+      listEl.appendChild(li);
+    });
+
+    $(offBtnId).onclick = () => {
+      items.forEach((_, idx) => {
+        const id = `${key}_${idx}`;
+        state[id] = false;
+      });
+      save(key, state);
+      // チェックを外す
+      listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+      renderChecklist();
+    };
+
+    function renderChecklist(){
+      const lis = listEl.querySelectorAll("li");
+      lis.forEach((li, idx) => {
+        const id = `${key}_${idx}`;
+        li.classList.toggle("done", !!state[id]);
+      });
+    }
+    renderChecklist();
+  }
+
+  // ===== 予約メモ =====
+  function renderRes() {
+    const arr = load(KEY_RES, []);
+    const list = $("resList");
+    list.innerHTML = "";
+
+    let left = 0;
+    arr.forEach((r, idx) => {
+      if (!r.done) left++;
+
+      const li = document.createElement("li");
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!r.done;
+      cb.onchange = () => {
+        r.done = cb.checked;
+        save(KEY_RES, arr);
+        renderRes();
+      };
+
+      const main = document.createElement("div");
+      main.style.flex = "1";
+      main.innerHTML = `
+        <div class="row" style="gap:6px;">
+          <strong>${escapeHtml(r.name || "（名無し）")}</strong>
+          <span class="pill">${escapeHtml(r.when || "日時未記入")}</span>
+          <span class="pill">${escapeHtml(r.people ? (r.people + "名") : "人数未記入")}</span>
+        </div>
+        <div class="small" style="margin-top:6px;">${escapeHtml(r.note || "").replace(/\n/g,"<br>")}</div>
+      `;
+
+      const del = document.createElement("button");
+      del.textContent = "削除";
+      del.onclick = () => {
+        arr.splice(idx, 1);
+        save(KEY_RES, arr);
+        renderRes();
+      };
+
+      li.appendChild(cb);
+      li.appendChild(main);
+      li.appendChild(del);
+      list.appendChild(li);
+
+      if (r.done) li.classList.add("done");
+    });
+
+    $("resLeft").textContent = left;
+  }
+
+  $("addRes").onclick = () => {
+    const name = $("r_name").value.trim();
+    const people = Number($("r_people").value);
+    const when = $("r_when").value.trim();
+    const note = $("r_note").value.trim();
+
+    if (!name && !when && !note && !people) {
+      alert("何か入力してから追加してね");
+      return;
+    }
+
+    const arr = load(KEY_RES, []);
+    arr.unshift({ id: uid(), name, people: people || "", when, note, done: false });
+    save(KEY_RES, arr);
+
+    $("r_name").value = "";
+    $("r_people").value = "";
+    $("r_when").value = "";
+    $("r_note").value = "";
+
+    renderRes();
+  };
+
+  $("clearDoneRes").onclick = () => {
+    const arr = load(KEY_RES, []);
+    const filtered = arr.filter(x => !x.done);
+    save(KEY_RES, filtered);
+    renderRes();
+  };
+
+  $("resetAll").onclick = () => {
+    if (!confirm("本当に全リセット？（開店/閉店/予約メモが全部消える）")) return;
+    localStorage.removeItem(KEY_OPEN);
+    localStorage.removeItem(KEY_CLOSE);
+    localStorage.removeItem(KEY_RES);
+    location.reload();
+  };
+
+  // ===== 初期化 =====
+  initChecklist(KEY_OPEN, OPEN_ITEMS, "openList", "openAllOff");
+  initChecklist(KEY_CLOSE, CLOSE_ITEMS, "closeList", "closeAllOff");
+  renderRes();
+</script>
+</body>
+</html>
