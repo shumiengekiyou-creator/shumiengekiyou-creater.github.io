@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>勉強ログ</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 18px; }
+    h1 { margin: 0 0 8px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; margin: 12px 0; }
+    label { display:block; font-size: 12px; opacity:.75; margin-top:10px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 10px; font-size: 16px; }
+    button { width:100%; padding: 12px; border: 0; border-radius: 12px; font-size: 16px; }
+    .row { display:flex; gap:10px; }
+    .row > * { flex:1; }
+    .muted { opacity: .7; font-size: 12px; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { border-top: 1px solid #eee; padding: 10px 0; display:flex; align-items:center; gap:10px; }
+    .pill { padding: 4px 8px; border: 1px solid #ddd; border-radius: 999px; font-size: 12px; }
+    .spacer { flex:1; }
+    .danger { background: #ffe9e9; }
+  </style>
+</head>
+
+<body>
+  <h1>勉強ログ</h1>
+  <div class="muted">入力→追加→合計が出る。データはこの端末に保存されるよ。</div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>日付</label>
+        <input id="date" type="date" />
+      </div>
+      <div>
+        <label>科目</label>
+        <select id="subject">
+          <option>HTML/CSS</option>
+          <option>JavaScript</option>
+          <option>ITパスポート</option>
+          <option>英語</option>
+          <option>その他</option>
+        </select>
+      </div>
+    </div>
+
+    <label>内容（短く）</label>
+    <input id="note" type="text" placeholder="例：Flexbox練習 / 過去問10問" />
+
+    <label>時間（分）</label>
+    <input id="minutes" type="number" min="1" placeholder="例：30" />
+
+    <div style="margin-top:12px;" class="row">
+      <button id="addBtn">追加する</button>
+      <button id="clearBtn" class="danger">全削除</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div><strong>合計：</strong><span id="total">0</span> 分</div>
+      <div class="spacer"></div>
+      <div class="pill">件数 <span id="count">0</span></div>
+    </div>
+    <ul id="list"></ul>
+  </div>
+
+  <script>
+    const KEY = "study_log_v1";
+
+    const $ = (id) => document.getElementById(id);
+    const dateEl = $("date");
+    const subjectEl = $("subject");
+    const noteEl = $("note");
+    const minutesEl = $("minutes");
+    const listEl = $("list");
+    const totalEl = $("total");
+    const countEl = $("count");
+
+    function todayStr() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function load() {
+      try { return JSON.parse(localStorage.getItem(KEY)) ?? []; }
+      catch { return []; }
+    }
+
+    function save(items) {
+      localStorage.setItem(KEY, JSON.stringify(items));
+    }
+
+    function render() {
+      const items = load();
+      listEl.innerHTML = "";
+
+      let total = 0;
+      items.forEach((it, idx) => {
+        total += Number(it.minutes) || 0;
+
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <span class="pill">${it.date}</span>
+          <span class="pill">${it.subject}</span>
+          <span>${escapeHtml(it.note)}</span>
+          <span class="spacer"></span>
+          <strong>${it.minutes}分</strong>
+          <button data-idx="${idx}" style="width:auto;padding:8px 10px;border-radius:10px;border:1px solid #ddd;background:#fff;">削除</button>
+        `;
+        listEl.appendChild(li);
+      });
+
+      totalEl.textContent = total;
+      countEl.textContent = items.length;
+    }
+
+    function escapeHtml(str) {
+      return (str ?? "").replace(/[&<>"']/g, (c) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      }[c]));
+    }
+
+    $("addBtn").addEventListener("click", () => {
+      const date = dateEl.value || todayStr();
+      const subject = subjectEl.value;
+      const note = noteEl.value.trim();
+      const minutes = Number(minutesEl.value);
+
+      if (!note) { alert("内容（短く）を入れてね"); return; }
+      if (!minutes || minutes <= 0) { alert("時間（分）を入れてね"); return; }
+
+      const items = load();
+      items.unshift({ date, subject, note, minutes });
+      save(items);
+
+      noteEl.value = "";
+      minutesEl.value = "";
+      render();
+    });
+
+    $("clearBtn").addEventListener("click", () => {
+      if (confirm("全部消す？（元に戻せない）")) {
+        save([]);
+        render();
+      }
+    });
+
+    listEl.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-idx]");
+      if (!btn) return;
+      const idx = Number(btn.dataset.idx);
+      const items = load();
+      items.splice(idx, 1);
+      save(items);
+      render();
+    });
+
+    // 初期設定
+    dateEl.value = todayStr();
+    render();
+  </script>
+</body>
+</html>
