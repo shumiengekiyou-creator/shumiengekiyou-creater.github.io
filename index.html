@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>作品ポートフォリオ｜simple-hokuhoku</title>
 </head>
-<script src="script.js"></script>
-<script src="app2.js"></script>
-</body>
 
 <body>
   <header class="top">
@@ -39,42 +36,7 @@
       <h2>Featured Projects</h2>
 
       <div class="grid">
-        <article class="card">
-          <h3>資産/家計ダッシュボード</h3>
-          <p>入力→集計→保存（localStorage）まで。カテゴリ別の管理も可能。</p>
-          <div class="meta">Tech: HTML / CSS / JS</div>
-          <div class="actions">
-            <a class="btn" href="dash.html">開く</a>
-            <a class="btn ghost" href="kakei.html">家計メモ</a>
-          </div>
-        </article>
-
-        <article class="card">
-          <h3>シフト計算ツール</h3>
-          <p>深夜割増や目標額までの残時間など、現場寄りの計算を想定。</p>
-          <div class="meta">Tech: HTML / CSS / JS</div>
-          <div class="actions">
-            <a class="btn" href="shift.html">開く</a>
-          </div>
-        </article>
-
-        <article class="card">
-          <h3>店舗OPSツール</h3>
-          <p>開店/閉店チェックや予約メモなど、業務フローの抜け漏れ対策。</p>
-          <div class="meta">Tech: HTML / CSS</div>
-          <div class="actions">
-            <a class="btn" href="shop-ocr.html">開く</a>
-          </div>
-        </article>
-
-        <article class="card">
-          <h3>詐欺広告チェッカー</h3>
-          <p>求人やリンクの怪しさをチェックする観点をまとめたページ。</p>
-          <div class="meta">Tech: HTML</div>
-          <div class="actions">
-            <a class="btn" href="scam-checker.html">開く</a>
-          </div>
-        </article>
+        <!-- ここはそのままでOK -->(←戒め)
       </div>
     </section>
 
@@ -91,14 +53,18 @@
         <li><a href="music%20setlist.html">音楽セットリスト</a></li>
         <li><a href="menu.html">架空カフェメニュー</a></li>
         <li><a href="dash.html">お金ためるダッシュボード</a></li>
-        <a class="card"
-          href="https://shumiengekiyou-creator.github.io/neon-live/"
-          target="_blank"　rel="noopener"
-          aria-label="NEON LIVE（別タブで開く）">
-          <h3>NEON LIVE</h3>
-          <p>おしゃれな音楽ライブ特設サイト（LP） / HTML・CSS・JavaScript</p>
-          <span class="tag">New</span>
-        </a>
+
+        <!-- ✅NEON LIVEはliに入れる -->(←戒め)
+        <li>
+          <a class="card"
+             href="neon-live/"
+             target="_blank" rel="noopener"
+             aria-label="NEON LIVE（別タブで開く）">
+            <h3>NEON LIVE</h3>
+            <p>おしゃれな音楽ライブ特設サイト（LP） / HTML・CSS・JavaScript</p>
+            <span class="tag">New</span>
+          </a>
+        </li>
       </ul>
     </section>
 
@@ -115,5 +81,8 @@
     </footer>
   </main>
 
+  <!-- ✅scriptはここ（bodyの最後） -->(戒め)
+  <script src="script.js"></script>
+  <script src="app2.js"></script>
 </body>
 </html>
