@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>家計メモ</title>
+  <title>家計メモ（完全体）</title>
   <style>
     :root{
       --bg:#f7f7fb;
@@ -12,6 +12,7 @@
       --muted:#667085;
       --line:#e6e8ef;
       --danger:#b42318;
+      --black:#111827;
     }
     body{
       margin:0;
@@ -20,10 +21,11 @@
       color:var(--ink);
       padding:18px;
     }
-    .wrap{ max-width: 980px; margin: 0 auto; }
+    .wrap{ max-width: 1080px; margin: 0 auto; }
     header{
       display:flex; gap:12px; align-items:baseline; justify-content:space-between;
       margin-bottom: 14px;
+      flex-wrap: wrap;
     }
     h1{ margin:0; font-size:22px; letter-spacing:.03em; }
     .sub{ color:var(--muted); font-size:12px; }
@@ -33,8 +35,8 @@
       grid-template-columns: 1fr;
       gap: 12px;
     }
-    @media (min-width: 900px){
-      .grid{ grid-template-columns: 360px 1fr; }
+    @media (min-width: 920px){
+      .grid{ grid-template-columns: 380px 1fr; }
     }
 
     .card{
@@ -55,9 +57,7 @@
       min-width: 120px;
       flex: 1;
     }
-    input, select, textarea, button{
-      font: inherit;
-    }
+    input, select, textarea, button{ font: inherit; }
     input, select, textarea{
       border:1px solid var(--line);
       border-radius: 10px;
@@ -81,9 +81,9 @@
       cursor:pointer;
     }
     button.primary{
-      background:#111827;
+      background:var(--black);
       color:#fff;
-      border-color:#111827;
+      border-color:var(--black);
     }
     button.danger{
       color:#fff;
@@ -105,14 +105,14 @@
       background:#fff;
     }
     .pill .k{ font-size:12px; color:var(--muted); }
-    .pill .v{ margin-top:4px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .pill .v{ margin-top:4px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
     .tools{
-      display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+      display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
       margin-bottom: 10px;
     }
     .tools .left, .tools .right{
-      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;
     }
 
     table{ width:100%; border-collapse: collapse; }
@@ -128,6 +128,7 @@
     .muted{ color:var(--muted); }
     .mini{ font-size:12px; }
     .actions{ white-space: nowrap; text-align:right; }
+
     .linkbtn{
       border:none; background:transparent; padding:6px 8px; cursor:pointer;
       color:#2563eb;
@@ -141,6 +142,12 @@
       font-size: 12px;
       color: var(--muted);
       margin-right: 6px;
+      background:#fff;
+    }
+
+    .divider{
+      height:1px; background:var(--line);
+      margin: 12px 0;
     }
   </style>
 </head>
@@ -148,16 +155,16 @@
   <div class="wrap">
     <header>
       <div>
-        <h1>家計メモ</h1>
-        <div class="sub">ブラウザ保存（localStorage） / 追加・編集・削除 / 合計表示</div>
+        <h1>家計メモ（完全体）</h1>
+        <div class="sub">ブラウザ保存（localStorage） / 月合計＋カテゴリ別 / 追加・編集・削除</div>
       </div>
-      <div class="sub" id="savedInfo">保存先：この端末のブラウザ</div>
+      <div class="sub">保存先：この端末のブラウザ</div>
     </header>
 
     <div class="grid">
       <!-- 左：入力 -->
       <section class="card" aria-label="入力">
-        <div class="muted mini">※ 金額は <b>1000</b> / <b>1,000</b> / <b>¥1000</b> みたいに自由入力OK</div>
+        <div class="muted mini">※ 金額は <b>1000</b> / <b>1,000</b> / <b>¥1000</b> / <b>1000円</b> / 全角数字でもOK</div>
 
         <div class="row">
           <label>
@@ -208,27 +215,21 @@
           <button class="danger" id="btnClearAll">全削除</button>
         </div>
 
-        <div class="summary" aria-label="合計">
-          <div class="pill">
-            <div class="k">支出 合計</div>
-            <div class="v" id="sumExpense">¥0</div>
-          </div>
-          <div class="pill">
-            <div class="k">収入 合計</div>
-            <div class="v" id="sumIncome">¥0</div>
-          </div>
-          <div class="pill">
-            <div class="k">差引</div>
-            <div class="v" id="sumNet">¥0</div>
-          </div>
-        </div>
+        <div class="divider"></div>
+
+        <div class="muted mini">使い方：右で <b>月</b> を選ぶ → その月の合計＆カテゴリ別が出る</div>
       </section>
 
-      <!-- 右：一覧 -->
-      <section class="card" aria-label="一覧">
+      <!-- 右：一覧＆集計 -->
+      <section class="card" aria-label="一覧と集計">
         <div class="tools">
           <div class="left">
-            <label style="min-width: 180px;">
+            <label style="min-width: 170px;">
+              月（YYYY-MM）
+              <input id="filterMonth" type="month" />
+            </label>
+
+            <label style="min-width: 170px;">
               フィルタ（カテゴリ）
               <select id="filterCat">
                 <option value="">すべて</option>
@@ -243,7 +244,7 @@
               </select>
             </label>
 
-            <label style="min-width: 160px;">
+            <label style="min-width: 150px;">
               フィルタ（種別）
               <select id="filterType">
                 <option value="">すべて</option>
@@ -260,6 +261,44 @@
         </div>
 
         <div class="muted mini" id="countInfo"></div>
+
+        <!-- 月合計（※月フィルタが空なら、いま表示中＝フィルタ後の合計） -->
+        <div class="summary" style="margin-top:10px;">
+          <div class="pill">
+            <div class="k" id="mLabelExpense">この月の支出</div>
+            <div class="v" id="mExpense">¥0</div>
+          </div>
+          <div class="pill">
+            <div class="k" id="mLabelIncome">この月の収入</div>
+            <div class="v" id="mIncome">¥0</div>
+          </div>
+          <div class="pill">
+            <div class="k" id="mLabelNet">この月の差引</div>
+            <div class="v" id="mNet">¥0</div>
+          </div>
+        </div>
+
+        <!-- 月カテゴリ別 -->
+        <div class="divider"></div>
+        <div class="muted mini" style="margin-bottom:8px;">この月のカテゴリ別（合計）</div>
+
+        <div style="overflow:auto; margin-bottom: 12px;">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:120px;">カテゴリ</th>
+                <th class="amt" style="min-width:120px;">支出</th>
+                <th class="amt" style="min-width:120px;">収入</th>
+                <th class="amt" style="min-width:120px;">差引</th>
+              </tr>
+            </thead>
+            <tbody id="catTbody"></tbody>
+          </table>
+        </div>
+
+        <!-- 一覧 -->
+        <div class="divider"></div>
+        <div class="muted mini" style="margin-bottom:8px;">明細（一覧）</div>
 
         <div style="overflow:auto;">
           <table>
@@ -282,8 +321,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const KEY = "kakei_v1";
-
+    const KEY = "kakei_v2_full";
     let editingId = null;
 
     function nowYMD(){
@@ -331,46 +369,29 @@
       return { exp, inc, net: inc - exp };
     }
 
-    function getFiltered(arr){
-      const fc = $("filterCat").value;
-      const ft = $("filterType").value;
-      return arr.filter(x => (fc ? x.cat === fc : true) && (ft ? x.type === ft : true));
+    function calcByCategory(arr){
+      const m = new Map(); // cat -> {exp, inc}
+      for (const x of arr){
+        const key = x.cat || "その他";
+        if (!m.has(key)) m.set(key, { exp:0, inc:0 });
+        const obj = m.get(key);
+        if (x.type === "expense") obj.exp += x.yen;
+        else obj.inc += x.yen;
+      }
+      return [...m.entries()].map(([cat, v]) => ({ cat, ...v, net: v.inc - v.exp }));
     }
 
-    function render(){
-      const arr = load().sort((a,b) => (b.date || "").localeCompare(a.date || "") || (b.id - a.id));
-      const filtered = getFiltered(arr);
+    function getFiltered(arr){
+      const fm = $("filterMonth").value; // "YYYY-MM"
+      const fc = $("filterCat").value;
+      const ft = $("filterType").value;
 
-      // 合計（フィルタ後の合計がわかりやすいので、フィルタ後を表示）
-      const sums = calcSums(filtered);
-      $("sumExpense").textContent = formatYen(sums.exp);
-      $("sumIncome").textContent = formatYen(sums.inc);
-      $("sumNet").textContent = formatYen(sums.net);
-
-      $("countInfo").textContent = `表示：${filtered.length}件 / 全体：${arr.length}件`;
-
-      const tb = $("tbody");
-      tb.innerHTML = "";
-
-      for (const x of filtered){
-        const tr = document.createElement("tr");
-
-        const typeLabel = x.type === "expense" ? "支出" : "収入";
-        const memo = (x.memo || "").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-
-        tr.innerHTML = `
-          <td>${x.date || ""}</td>
-          <td><span class="tag">${typeLabel}</span></td>
-          <td>${x.cat || ""}</td>
-          <td class="muted">${memo}</td>
-          <td class="amt">${formatYen(x.yen)}</td>
-          <td class="actions">
-            <button class="linkbtn" data-act="edit" data-id="${x.id}">編集</button>
-            <button class="linkbtn d" data-act="del" data-id="${x.id}">削除</button>
-          </td>
-        `;
-        tb.appendChild(tr);
-      }
+      return arr.filter(x => {
+        const okMonth = fm ? (x.date || "").startsWith(fm) : true;
+        const okCat = fc ? x.cat === fc : true;
+        const okType = ft ? x.type === ft : true;
+        return okMonth && okCat && okType;
+      });
     }
 
     function clearForm(){
@@ -402,7 +423,7 @@
       $("yen").value = String(item.yen ?? "");
       $("memo").value = item.memo || "";
 
-      // 編集中に種別変えると計算がややこしくなるので固定（嫌なら消してOK）
+      // 編集中は種別固定（嫌なら次の1行を消してOK）
       $("type").disabled = true;
 
       $("yen").focus();
@@ -418,21 +439,17 @@
       const yen = parseInt(yenStr, 10);
 
       if (!date) { alert("日付は必須だよ"); return; }
-      if (!yenStr || Number.isNaN(yen)) { alert("金額が変だよ（例：1000 / 1,000 / ¥1000）"); return; }
+      if (!yenStr || Number.isNaN(yen)) { alert("金額が変だよ（例：1000 / 1,000 / ¥1000 / 1000円）"); return; }
       if (yen < 0) { alert("金額はマイナスじゃなくてOK（種別で表現しよう）"); return; }
 
       const arr = load();
 
       if (editingId == null){
-        arr.push({
-          id: Date.now(),
-          date, type, cat,
-          memo,
-          yen
-        });
+        arr.push({ id: Date.now(), date, type, cat, memo, yen });
       } else {
         const idx = arr.findIndex(x => x.id === editingId);
         if (idx >= 0){
+          // 種別は編集で変えない仕様（固定）
           arr[idx] = { ...arr[idx], date, cat, memo, yen };
         }
       }
@@ -452,7 +469,6 @@
 
     function exportData(){
       const data = JSON.stringify(load(), null, 2);
-      // クリップボードにコピー（ダメならalertで表示）
       navigator.clipboard?.writeText(data).then(() => {
         alert("エクスポート（JSON）をクリップボードにコピーしたよ");
       }).catch(() => {
@@ -466,7 +482,6 @@
       try{
         const arr = JSON.parse(txt);
         if (!Array.isArray(arr)) throw new Error("not array");
-        // 最低限の形を整える
         const cleaned = arr.map(x => ({
           id: Number(x.id) || Date.now() + Math.floor(Math.random()*10000),
           date: String(x.date || ""),
@@ -484,6 +499,71 @@
       }
     }
 
+    function render(){
+      const arr = load().sort((a,b) =>
+        (b.date || "").localeCompare(a.date || "") || (b.id - a.id)
+      );
+
+      const filtered = getFiltered(arr);
+
+      // 件数
+      $("countInfo").textContent = `表示：${filtered.length}件 / 全体：${arr.length}件`;
+
+      // 月フィルタが空なら「表示中（フィルタ後）」を合計として見せる
+      const month = $("filterMonth").value; // "YYYY-MM" or ""
+      const baseForMonth = month ? arr.filter(x => (x.date || "").startsWith(month)) : filtered;
+
+      // ラベル切替
+      $("mLabelExpense").textContent = month ? "この月の支出" : "表示中の支出";
+      $("mLabelIncome").textContent = month ? "この月の収入" : "表示中の収入";
+      $("mLabelNet").textContent = month ? "この月の差引" : "表示中の差引";
+
+      // 月（または表示中）合計
+      const ms = calcSums(baseForMonth);
+      $("mExpense").textContent = formatYen(ms.exp);
+      $("mIncome").textContent = formatYen(ms.inc);
+      $("mNet").textContent = formatYen(ms.net);
+
+      // 月カテゴリ別（支出多い順）
+      const catRows = calcByCategory(baseForMonth)
+        .sort((a,b) => (b.exp - a.exp) || a.cat.localeCompare(b.cat, "ja"));
+
+      const catTb = $("catTbody");
+      catTb.innerHTML = "";
+      for (const r of catRows){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.cat}</td>
+          <td class="amt">${formatYen(r.exp)}</td>
+          <td class="amt">${formatYen(r.inc)}</td>
+          <td class="amt">${formatYen(r.net)}</td>
+        `;
+        catTb.appendChild(tr);
+      }
+
+      // 一覧描画
+      const tb = $("tbody");
+      tb.innerHTML = "";
+
+      for (const x of filtered){
+        const tr = document.createElement("tr");
+        const typeLabel = x.type === "expense" ? "支出" : "収入";
+        const memo = (x.memo || "").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+        tr.innerHTML = `
+          <td>${x.date || ""}</td>
+          <td><span class="tag">${typeLabel}</span></td>
+          <td>${x.cat || ""}</td>
+          <td class="muted">${memo}</td>
+          <td class="amt">${formatYen(x.yen)}</td>
+          <td class="actions">
+            <button class="linkbtn" data-act="edit" data-id="${x.id}">編集</button>
+            <button class="linkbtn d" data-act="del" data-id="${x.id}">削除</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      }
+    }
+
     // ---- events ----
     $("btnAdd").addEventListener("click", upsert);
     $("btnCancelEdit").addEventListener("click", clearForm);
@@ -495,6 +575,7 @@
       render();
     });
 
+    $("filterMonth").addEventListener("change", render);
     $("filterCat").addEventListener("change", render);
     $("filterType").addEventListener("change", render);
 
@@ -515,8 +596,9 @@
 
     // 初期化
     $("date").value = nowYMD();
+    $("filterMonth").value = nowYMD().slice(0,7); // 今月
+    clearForm(); // 入力欄整える
     render();
   </script>
 </body>
 </html>
-
