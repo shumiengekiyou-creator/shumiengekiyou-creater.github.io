@@ -1,148 +1,159 @@
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HTMLプロトタイプ</title>
+* { box-sizing: border-box; }
 
-  <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>作品ポートフォリオ</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
+:root{
+  --bg: #ffffff;
+  --text: #111;
+  --muted: #666;
+  --line: #e6e6e6;
+  --card: #fafafa;
+}
 
+body{
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
 
-  <style>
-    /* 全体の余白を整える */
-    body { margin: 0; padding: 24px; }
+.container{
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 24px;
+}
 
-    /* リストの「謎余白」を減らす */
-    ul { margin: 12px 0 0; padding-left: 1.2em; }
-    li { margin: 6px 0; }
+.top{
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #fff, #fcfcfc);
+}
 
-    /* リンクを読みやすく　*/
-    a { text-decoration: none; }
-    a:hover { text-decoration:underline; }
-  </style>
+.eyebrow{
+  margin: 0 0 8px;
+  color: var(--muted);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
 
-  <link rel="stylesheet" href="styles.css">
+.lead{
+  margin: 10px 0 12px;
+  color: var(--muted);
+  line-height: 1.7;
+}
 
-</head>
-<body style="font-family: system-ui, -apple-system, sans-serif; padding: 24px;">
-  <h1>ホームページあべひろしよりもsimple-hokuhoku-</h1>
-  <p>考えの貯蔵庫 / 勉強 / 生活管理</p>
+.badges{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+.badge{
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: #fff;
+}
 
-  <ul>
-    <li><a href="todo.html">ToDo</a></li>
-    <li><a href="study.html">勉強ログ</a></li>
-    <li><a href="blog.html">ブログ</a></li>
-    <li><a href="kakei.html">家計メモ</a></li>
-    <li><a href="shop.html">店ミニ管理ツール</a></li>
-    <li><a href="shop-ocr.html">開店閉店予約メモ</a><li>
-    <li><a href="shift.html">シフト計算</a><li>
-    <li><a href="music setlist.html">音楽セットリスト</a></li>
-    <li><a href="scam-checker.html">詐欺広告チェッカー</a></li>
-    <li><a href="menu.html">架空カフェメニュー</a></li>
-    <li><a href="dash.html">お金ためるダッシュボード</a></li>
-  </ul>
-</body>
-</html>
+.nav{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.nav a{
+  text-decoration: none;
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+.nav a.active{
+  background: var(--text);
+  color: #fff;
+  border-color: var(--text);
+}
 
+.section{
+  margin: 22px 0;
+}
+.section h2{
+  margin: 0 0 12px;
+  font-size: 18px;
+}
 
+.grid{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 720px){
+  .grid{ grid-template-columns: 1fr; }
+}
 
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>作品ポートフォリオ｜shumiengekiyou</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-  <header class="top">
-    <div class="container">
-      <p class="eyebrow">Portfolio</p>
-      <h1>simple-hokuhoku</h1>
-      <p class="lead">
-        HTML/CSS/JavaScriptで、生活管理・業務ツール系のミニアプリを制作しています。
-      </p>
+.card{
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px;
+}
+.card h3{ margin: 0 0 6px; }
+.card p{
+  margin: 0 0 10px;
+  color: var(--muted);
+  line-height: 1.7;
+}
 
-      <div class="badges">
-        <span class="badge">HTML</span>
-        <span class="badge">CSS</span>
-        <span class="badge">JavaScript</span>
-        <span class="badge">GitHub Pages</span>
-      </div>
+.meta{
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
 
-      <nav class="nav">
-        <a href="index.html" class="active">Home</a>
-        <a href="study.html">Study</a>
-        <a href="blog.html">Blog</a>
-        <a href="todo.html">ToDo</a>
-      </nav>
-    </div>
-  </header>
+.actions{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
-  <main class="container">
-    <section class="section">
-      <h2>Featured Projects</h2>
+.btn{
+  display: inline-block;
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--text);
+  background: var(--text);
+  color: #fff;
+}
+.btn.ghost{
+  background: transparent;
+  color: var(--text);
+  border-color: var(--line);
+}
 
-      <div class="grid">
-        <article class="card">
-          <h3>資産/家計ダッシュボード</h3>
-          <p>入力→集計→保存（localStorage）まで。カテゴリ別の管理も可能。</p>
-          <div class="meta">Tech: HTML / CSS / JS</div>
-          <div class="actions">
-            <a class="btn" href="dash.html">開く</a>
-            <a class="btn ghost" href="kakei.html">家計メモ</a>
-          </div>
-        </article>
+.linklist{
+  margin: 8px 0 0;
+  padding-left: 1.1em; /* ← ulの“謎余白”調整 */
+}
+.linklist li{
+  margin: 6px 0;
+}
+.linklist a{
+  text-decoration: none;
+  color: var(--text);
+}
+.linklist a:hover{
+  text-decoration: underline;
+}
 
-        <article class="card">
-          <h3>シフト計算ツール</h3>
-          <p>深夜割増や目標額までの残時間など、現場寄りの計算を想定。</p>
-          <div class="meta">Tech: HTML / CSS / JS</div>
-          <div class="actions">
-            <a class="btn" href="shift.html">開く</a>
-          </div>
-        </article>
+.about{
+  line-height: 1.9;
+  color: var(--muted);
+}
 
-        <article class="card">
-          <h3>店舗OPSツール</h3>
-          <p>開店/閉店チェックや予約メモなど、業務フローの抜け漏れ対策。</p>
-          <div class="meta">Tech: HTML / CSS</div>
-          <div class="actions">
-            <a class="btn" href="shop-ocr.html">開く</a>
-          </div>
-        </article>
-
-        <article class="card">
-          <h3>詐欺広告チェッカー</h3>
-          <p>求人やリンクの怪しさをチェックする観点をまとめたページ。</p>
-          <div class="meta">Tech: HTML</div>
-          <div class="actions">
-            <a class="btn" href="scam-checker.html">開く</a>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="section">
-      <h2>About</h2>
-      <p class="about">
-        接客・現場系アルバイトを複数経験し、業務の流れや改善点を意識して働いてきました。
-        自分でホームページを制作したことをきっかけにWeb制作に適性を感じ、現在は学習と制作を継続しています。
-      </p>
-    </section>
-
-    <footer class="footer">
-      <small>© simple-hokuhoku</small>
-    </footer>
-  </main>
-</body>
-</html>
-
-
-
+.footer{
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 14px;
+  color: var(--muted);
+}
 
