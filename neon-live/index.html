@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NEON LIVE 2026 — Showcase</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="grain"></div>
+  </div>
+
+  <header class="top">
+    <div class="container row">
+      <a class="logo" href="#top">NEON LIVE</a>
+      <nav class="nav">
+        <a href="#lineup">LINEUP</a>
+        <a href="#timetable">TIME</a>
+        <a href="#setlist">SETLIST</a>
+        <a href="#info">INFO</a>
+      </nav>
+      <button class="btn ghost" id="btnTicket" type="button">TICKET</button>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="container heroGrid">
+        <div>
+          <p class="pill">LIVE SHOWCASE / ELECTRO・CITYPOP・ROCK</p>
+          <h1 class="title">NEON LIVE 2026</h1>
+          <p class="lead">
+            都会の夜みたいな、音と光のワンナイト。<br />
+            あなたの“好き”を連れて帰って。
+          </p>
+
+          <div class="meta">
+            <div class="metaItem">
+              <span class="k">DATE</span>
+              <span class="v">2026.03.21 (Sat)</span>
+            </div>
+            <div class="metaItem">
+              <span class="k">OPEN</span>
+              <span class="v">18:00 / START 19:00</span>
+            </div>
+            <div class="metaItem">
+              <span class="k">VENUE</span>
+              <span class="v">YONAGO — Harbor Hall</span>
+            </div>
+          </div>
+
+          <div class="heroBtns">
+            <a class="btn" href="#lineup">ラインナップを見る</a>
+            <button class="btn ghost" id="btnScroll" type="button">雰囲気を体感</button>
+          </div>
+
+          <div class="countdown" aria-label="countdown">
+            <span class="tag">開演まで</span>
+            <div class="cd" id="countdown">
+              <div><span class="n" id="cdD">--</span><span class="u">D</span></div>
+              <div><span class="n" id="cdH">--</span><span class="u">H</span></div>
+              <div><span class="n" id="cdM">--</span><span class="u">M</span></div>
+              <div><span class="n" id="cdS">--</span><span class="u">S</span></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="poster" aria-label="event poster">
+          <div class="posterInner">
+            <p class="posterTop">NEON LIVE 2026</p>
+            <p class="posterMid">ONE NIGHT<br />CITY LIGHTS</p>
+            <p class="posterBottom">#synth #rock #citypop</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="lineup">
+      <div class="container">
+        <h2 class="h2">LINEUP</h2>
+        <p class="sub">架空のアーティスト名でOK。雰囲気が出る。</p>
+
+        <div class="cards">
+          <article class="card">
+            <div class="avatar a1"></div>
+            <h3>Midnight Komachi</h3>
+            <p>煌めきシンセ × 夜更けのメロ。</p>
+            <span class="chip">SYNTH</span>
+          </article>
+
+          <article class="card">
+            <div class="avatar a2"></div>
+            <h3>Harbor Glass</h3>
+            <p>透明感のあるギター・ポップ。</p>
+            <span class="chip">CITY POP</span>
+          </article>
+
+          <article class="card">
+            <div class="avatar a3"></div>
+            <h3>Riverside Drive</h3>
+            <p>川沿いを歩くみたいなロック。</p>
+            <span class="chip">ROCK</span>
+          </article>
+
+          <article class="card">
+            <div class="avatar a4"></div>
+            <h3>Neon Choir</h3>
+            <p>重低音とコーラスの浮遊感。</p>
+            <span class="chip">ELECTRO</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="timetable">
+      <div class="container">
+        <h2 class="h2">TIME TABLE</h2>
+        <div class="table">
+          <div class="tr"><span class="time">18:00</span><span class="what">OPEN</span></div>
+          <div class="tr"><span class="time">19:00</span><span class="what">Midnight Komachi</span></div>
+          <div class="tr"><span class="time">19:45</span><span class="what">Harbor Glass</span></div>
+          <div class="tr"><span class="time">20:30</span><span class="what">Riverside Drive</span></div>
+          <div class="tr"><span class="time">21:15</span><span class="what">Neon Choir</span></div>
+          <div class="tr"><span class="time">22:00</span><span class="what">CLOSE</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="setlist">
+      <div class="container">
+        <div class="row2">
+          <div>
+            <h2 class="h2">SETLIST</h2>
+            <p class="sub">検索できると「JS使ってる感」が一気に出る。</p>
+          </div>
+          <div class="search">
+            <input id="q" type="search" placeholder="曲名で検索…（例：neon / river）" />
+            <span class="hint">EnterでOK</span>
+          </div>
+        </div>
+
+        <ul class="list" id="list"></ul>
+      </div>
+    </section>
+
+    <section class="section" id="info">
+      <div class="container info">
+        <h2 class="h2">INFO</h2>
+        <div class="infoGrid">
+          <div class="infoBox">
+            <h3>ACCESS</h3>
+            <p>YONAGO Harbor Hall（架空）<br>駅から徒歩8分 / 駐輪OK</p>
+          </div>
+          <div class="infoBox">
+            <h3>NOTES</h3>
+            <p>撮影OK / 迷惑行為NG / 体調不良時は無理しない。</p>
+          </div>
+          <div class="infoBox">
+            <h3>CONTACT</h3>
+            <p>info@example.com（ダミーでOK）</p>
+          </div>
+        </div>
+        <footer class="footer">© 2026 NEON LIVE — demo project</footer>
+      </div>
+    </section>
+  </main>
+
+  <!-- Ticket Modal -->
+  <dialog class="modal" id="ticketModal">
+    <div class="modalInner">
+      <div class="ticket">
+        <div class="ticketTop">
+          <strong>NEON LIVE 2026</strong>
+          <button class="x" id="btnClose" type="button" aria-label="close">×</button>
+        </div>
+        <div class="ticketBody">
+          <p class="big">ADMIT ONE</p>
+          <p class="small">2026.03.21 / 19:00 START</p>
+          <p class="small">YONAGO — Harbor Hall</p>
+          <div class="barcode" aria-hidden="true"></div>
+          <button class="btn" id="btnCopy" type="button">合言葉をコピー</button>
+          <p class="note" id="copyNote" aria-live="polite"></p>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
