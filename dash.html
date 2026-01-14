@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>投資ダッシュボード｜Portfolio</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#111826; --text:#e7eefc; --muted:#9bb0d0;
+      --line:rgba(255,255,255,.10); --accent:#7aa7ff; --good:#67e8a7; --bad:#ff6b6b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Hiragino Sans","Noto Sans JP";background:radial-gradient(1200px 800px at 15% 10%, rgba(122,167,255,.18), transparent 60%), var(--bg);color:var(--text)}
+    header{position:sticky;top:0;background:linear-gradient(to bottom, rgba(11,15,20,.85), rgba(11,15,20,.45));backdrop-filter: blur(10px);border-bottom:1px solid var(--line);z-index:10}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    h1{margin:0;font-size:18px;letter-spacing:.06em}
+    .sub{color:var(--muted);font-size:12px;margin-top:4px}
+    .grid{display:grid;gap:14px}
+    @media(min-width:960px){.grid{grid-template-columns: 1.2fr .8fr}}
+    .cards{display:grid;gap:12px}
+    @media(min-width:680px){.cards{grid-template-columns: repeat(3, 1fr)}}
+    .card,.panel{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));border:1px solid var(--line);border-radius:14px}
+    .card{padding:12px}
+    .k{color:var(--muted);font-size:12px}
+    .v{font-size:20px;margin-top:6px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    button{background:rgba(122,167,255,.15);border:1px solid rgba(122,167,255,.35);color:var(--text);padding:9px 10px;border-radius:10px;cursor:pointer}
+    button.secondary{background:rgba(255,255,255,.06);border:1px solid var(--line)}
+    button.danger{background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.35)}
+    button:hover{filter:brightness(1.08)}
+    input,select{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:10px;outline:none;min-width: 120px}
+    input::placeholder{color:rgba(231,238,252,.35)}
+    .panel{padding:14px}
+    .panel h2{margin:0 0 10px 0;font-size:14px;color:var(--muted);letter-spacing:.06em}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+    th{color:var(--muted);font-weight:600}
+    td.num{text-align:right;font-variant-numeric: tabular-nums}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);font-size:12px}
+    .good{color:var(--good)} .bad{color:var(--bad)}
+    .mini{font-size:12px;color:var(--muted)}
+    .split{display:grid;gap:12px}
+    @media(min-width:860px){.split{grid-template-columns: 1fr 1fr}}
+    .bar{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid var(--line)}
+    .bar > i{display:block;height:100%;background:linear-gradient(90deg, rgba(122,167,255,.85), rgba(103,232,167,.85));width:0%}
+    .legend{display:grid;gap:8px;margin-top:10px}
+    .legend .item{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted)}
+    .dot{width:10px;height:10px;border-radius:50%}
+    .footer{padding:14px 0;color:var(--muted);font-size:12px}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <h1>投資ダッシュボード</h1>
+        <div class="sub">入力した「数量 × 現在値」で評価額・損益・配分を自動計算（データは端末に保存）</div>
+      </div>
+      <div class="row">
+        <button class="secondary" id="btnExport">エクスポート</button>
+        <button class="secondary" id="btnImport">インポート</button>
+        <button class="danger" id="btnReset">全消去</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap grid">
+  <!-- LEFT -->
+  <section class="grid" style="grid-template-columns:1fr;gap:14px">
+    <div class="cards">
+      <div class="card">
+        <div class="k">総評価額</div>
+        <div class="v" id="totalValue">¥0</div>
+        <div class="mini" id="updatedAt">—</div>
+      </div>
+      <div class="card">
+        <div class="k">総コスト（取得）</div>
+        <div class="v" id="totalCost">¥0</div>
+        <div class="mini">※ 平均取得単価 × 数量の合計</div>
+      </div>
+      <div class="card">
+        <div class="k">含み損益</div>
+        <div class="v" id="totalPL">¥0</div>
+        <div class="mini" id="totalPLPct">—</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>保有一覧</h2>
+      <div class="row" style="margin-bottom:10px">
+        <span class="pill">通貨: <b>JPY</b></span>
+        <span class="pill">行をクリックで編集</span>
+      </div>
+
+      <div style="overflow:auto;border-radius:12px;border:1px solid var(--line)">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th>銘柄</th>
+              <th>種別</th>
+              <th class="num">数量</th>
+              <th class="num">平均取得</th>
+              <th class="num">現在値</th>
+              <th class="num">評価額</th>
+              <th class="num">損益</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="split" style="margin-top:14px">
+        <div class="panel" style="margin:0">
+          <h2>追加 / 更新</h2>
+          <div class="row" style="gap:8px">
+            <input id="fName" placeholder="例: eMAXIS Slim S&P500" style="flex:1;min-width:220px">
+            <select id="fType">
+              <option>投信</option><option>ETF</option><option>株</option><option>暗号資産</option><option>現金</option><option>その他</option>
+            </select>
+          </div>
+          <div class="row" style="margin-top:8px;gap:8px">
+            <input id="fQty" inputmode="decimal" placeholder="数量（例: 10 / 1.25）" style="flex:1">
+            <input id="fAvg" inputmode="decimal" placeholder="平均取得（円）" style="flex:1">
+            <input id="fPrice" inputmode="decimal" placeholder="現在値（円）" style="flex:1">
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button id="btnAdd">追加/上書き</button>
+            <button class="secondary" id="btnClearForm">フォームクリア</button>
+            <span class="mini" id="editHint"></span>
+          </div>
+        </div>
+
+        <div class="panel" style="margin:0">
+          <h2>目標</h2>
+          <div class="row" style="gap:8px">
+            <input id="goalAmount" inputmode="numeric" placeholder="目標資産（円）" style="flex:1">
+            <input id="monthlyAdd" inputmode="numeric" placeholder="毎月入金（円）" style="flex:1">
+          </div>
+          <div class="row" style="margin-top:10px">
+            <div style="flex:1">
+              <div class="mini">達成率</div>
+              <div class="bar"><i id="goalBar"></i></div>
+              <div class="row" style="justify-content:space-between;margin-top:6px">
+                <div class="mini" id="goalText">—</div>
+                <div class="mini" id="goalEta">—</div>
+              </div>
+            </div>
+          </div>
+          <div class="mini" style="margin-top:10px">※ ざっくり：現在資産＋毎月入金のみで計算（利回りは未考慮）</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT -->
+  <aside class="panel">
+    <h2>配分（評価額ベース）</h2>
+    <div class="legend" id="alloc"></div>
+    <div class="footer">※ これは管理ツール。投資判断は自己責任で。</div>
+  </aside>
+</main>
+
+<script>
+  const KEY = "invest_dashboard_v1";
+  const $ = (id) => document.getElementById(id);
+
+  // データ構造: { holdings: [{name,type,qty,avg,price}], goal:{amount, monthly} }
+  function load(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(!raw) return {holdings:[], goal:{amount:"", monthly:""}};
+      const obj = JSON.parse(raw);
+      obj.holdings ??= [];
+      obj.goal ??= {amount:"", monthly:""};
+      return obj;
+    }catch(e){
+      return {holdings:[], goal:{amount:"", monthly:""}};
+    }
+  }
+  function save(state){
+    localStorage.setItem(KEY, JSON.stringify(state));
+  }
+
+  function yen(n){
+    const x = Number(n);
+    if(!isFinite(x)) return "—";
+    return "¥" + Math.round(x).toLocaleString("ja-JP");
+  }
+  function num(n){
+    const x = Number(n);
+    return isFinite(x) ? x : 0;
+  }
+
+  let state = load();
+  let editingName = null;
+
+  function recalc(){
+    const holdings = state.holdings;
+
+    const totalValue = holdings.reduce((s,h)=> s + num(h.qty)*num(h.price), 0);
+    const totalCost  = holdings.reduce((s,h)=> s + num(h.qty)*num(h.avg), 0);
+    const pl = totalValue - totalCost;
+    const plPct = totalCost > 0 ? (pl/totalCost*100) : null;
+
+    $("totalValue").textContent = yen(totalValue);
+    $("totalCost").textContent  = yen(totalCost);
+    $("totalPL").textContent    = (pl>=0?"+":"") + yen(pl).replace("¥", "¥");
+    $("totalPL").className = "v " + (pl>=0 ? "good" : "bad");
+    $("totalPLPct").textContent = plPct===null ? "—" : `${plPct>=0?"+":""}${plPct.toFixed(2)}%`;
+    $("totalPLPct").className = "mini " + (pl>=0 ? "good" : "bad");
+
+    $("updatedAt").textContent = "更新: " + new Date().toLocaleString("ja-JP");
+
+    renderTable();
+    renderAlloc(totalValue);
+    renderGoal(totalValue);
+
+    save(state);
+  }
+
+  function renderTable(){
+    const tb = $("tbl").querySelector("tbody");
+    tb.innerHTML = "";
+
+    const sorted = [...state.holdings].sort((a,b)=>{
+      const av = num(a.qty)*num(a.price);
+      const bv = num(b.qty)*num(b.price);
+      return bv - av;
+    });
+
+    for(const h of sorted){
+      const tr = document.createElement("tr");
+      const val = num(h.qty)*num(h.price);
+      const cost = num(h.qty)*num(h.avg);
+      const pl = val - cost;
+
+      tr.innerHTML = `
+        <td>${escapeHtml(h.name)}</td>
+        <td>${escapeHtml(h.type)}</td>
+        <td class="num">${fmtQty(h.qty)}</td>
+        <td class="num">${yen(h.avg)}</td>
+        <td class="num">${yen(h.price)}</td>
+        <td class="num">${yen(val)}</td>
+        <td class="num ${pl>=0?"good":"bad"}">${(pl>=0?"+":"") + yen(pl)}</td>
+        <td class="num"><button class="secondary" data-del="${escapeAttr(h.name)}">削除</button></td>
+      `;
+
+      tr.addEventListener("click",(e)=>{
+        if(e.target?.dataset?.del) return; // 削除ボタンの時は編集に入らない
+        startEdit(h.name);
+      });
+
+      tb.appendChild(tr);
+    }
+
+    tb.querySelectorAll("button[data-del]").forEach(btn=>{
+      btn.addEventListener("click",(e)=>{
+        e.stopPropagation();
+        const name = btn.dataset.del;
+        state.holdings = state.holdings.filter(x=> x.name !== name);
+        if(editingName === name) stopEdit();
+        recalc();
+      });
+    });
+  }
+
+  function renderAlloc(totalValue){
+    const box = $("alloc");
+    box.innerHTML = "";
+
+    if(totalValue <= 0){
+      box.innerHTML = `<div class="mini">まだデータがありません。左のフォームから追加してね。</div>`;
+      return;
+    }
+
+    // type別に集計
+    const byType = {};
+    for(const h of state.holdings){
+      const t = h.type || "その他";
+      const v = num(h.qty)*num(h.price);
+      byType[t] = (byType[t] || 0) + v;
+    }
+
+    const entries = Object.entries(byType).sort((a,b)=> b[1]-a[1]);
+    const palette = ["#7aa7ff","#67e8a7","#ffd166","#ff6b6b","#a78bfa","#22d3ee","#f59e0b","#94a3b8"];
+
+    entries.forEach(([t,v],i)=>{
+      const pct = v/totalValue*100;
+      const row = document.createElement("div");
+      row.className = "item";
+      const color = palette[i % palette.length];
+
+      row.innerHTML = `
+        <span style="display:flex;align-items:center;gap:8px">
+          <span class="dot" style="background:${color}"></span>
+          ${escapeHtml(t)}
+        </span>
+        <span>${pct.toFixed(1)}% / ${yen(v)}</span>
+      `;
+      box.appendChild(row);
+    });
+  }
+
+  function renderGoal(totalValue){
+    const goal = num(state.goal.amount);
+    const monthly = num(state.goal.monthly);
+
+    if(goal <= 0){
+      $("goalBar").style.width = "0%";
+      $("goalText").textContent = "目標額を入力すると表示されます";
+      $("goalEta").textContent = "—";
+      return;
+    }
+
+    const pct = Math.max(0, Math.min(100, totalValue/goal*100));
+    $("goalBar").style.width = pct.toFixed(1) + "%";
+    $("goalText").textContent = `${yen(totalValue)} / ${yen(goal)}（${pct.toFixed(1)}%）`;
+
+    if(totalValue >= goal){
+      $("goalEta").textContent = "達成！";
+      return;
+    }
+    if(monthly <= 0){
+      $("goalEta").textContent = "毎月入金を入れると目安が出ます";
+      return;
+    }
+    const remain = goal - totalValue;
+    const months = Math.ceil(remain / monthly);
+    const eta = new Date();
+    eta.setMonth(eta.getMonth() + months);
+    $("goalEta").textContent = `目安: 約${months}ヶ月（${eta.getFullYear()}年${eta.getMonth()+1}月頃）`;
+  }
+
+  function startEdit(name){
+    const h = state.holdings.find(x=>x.name===name);
+    if(!h) return;
+    editingName = name;
+    $("fName").value = h.name;
+    $("fType").value = h.type;
+    $("fQty").value = h.qty;
+    $("fAvg").value = h.avg;
+    $("fPrice").value = h.price;
+    $("editHint").textContent = `編集モード:「${name}」`;
+  }
+  function stopEdit(){
+    editingName = null;
+    $("editHint").textContent = "";
+  }
+
+  function addOrUpdate(){
+    const name = $("fName").value.trim();
+    if(!name){ alert("銘柄名を入れてね"); return; }
+
+    const item = {
+      name,
+      type: $("fType").value,
+      qty: $("fQty").value.trim(),
+      avg: $("fAvg").value.trim(),
+      price: $("fPrice").value.trim()
+    };
+
+    const idx = state.holdings.findIndex(x=>x.name===name);
+    if(idx >= 0) state.holdings[idx] = item;
+    else state.holdings.push(item);
+
+    stopEdit();
+    recalc();
+  }
+
+  function clearForm(){
+    $("fName").value = "";
+    $("fQty").value = "";
+    $("fAvg").value = "";
+    $("fPrice").value = "";
+    $("fType").value = "投信";
+    stopEdit();
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function escapeAttr(s){
+    return String(s).replace(/"/g,'&quot;');
+  }
+  function fmtQty(q){
+    const x = Number(q);
+    return isFinite(x) ? x.toLocaleString("ja-JP", {maximumFractionDigits: 6}) : "—";
+  }
+
+  // goal bind
+  $("goalAmount").value = state.goal.amount ?? "";
+  $("monthlyAdd").value = state.goal.monthly ?? "";
+  ["goalAmount","monthlyAdd"].forEach(id=>{
+    $(id).addEventListener("input", ()=>{
+      state.goal.amount = $("goalAmount").value.trim();
+      state.goal.monthly = $("monthlyAdd").value.trim();
+      recalc();
+    });
+  });
+
+  // buttons
+  $("btnAdd").addEventListener("click", addOrUpdate);
+  $("btnClearForm").addEventListener("click", clearForm);
+
+  $("btnReset").addEventListener("click", ()=>{
+    if(confirm("全データを消去します。よろしい？")){
+      localStorage.removeItem(KEY);
+      state = {holdings:[], goal:{amount:"", monthly:""}};
+      clearForm();
+      $("goalAmount").value = "";
+      $("monthlyAdd").value = "";
+      recalc();
+    }
+  });
+
+  $("btnExport").addEventListener("click", ()=>{
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "invest_dashboard_backup.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  $("btnImport").addEventListener("click", async ()=>{
+    const inp = document.createElement("input");
+    inp.type = "file";
+    inp.accept = "application/json";
+    inp.onchange = async ()=>{
+      const file = inp.files?.[0];
+      if(!file) return;
+      const text = await file.text();
+      try{
+        const obj = JSON.parse(text);
+        if(!obj || typeof obj !== "object") throw new Error("bad json");
+        state = {
+          holdings: Array.isArray(obj.holdings) ? obj.holdings : [],
+          goal: obj.goal && typeof obj.goal==="object" ? obj.goal : {amount:"", monthly:""}
+        };
+        $("goalAmount").value = state.goal.amount ?? "";
+        $("monthlyAdd").value = state.goal.monthly ?? "";
+        clearForm();
+        recalc();
+      }catch(e){
+        alert("読み込みに失敗。ファイルが正しいか確認してね。");
+      }
+    };
+    inp.click();
+  });
+
+  // first render
+  recalc();
+</script>
+</body>
+</html>
