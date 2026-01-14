@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>詐欺広告チェッカー v0.1</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; margin: 0; background:#f6f7fb; color:#111; }
+    header { padding: 16px 18px; background:#111827; color:#fff; }
+    header h1 { margin: 0; font-size: 18px; }
+    main { max-width: 980px; margin: 0 auto; padding: 16px 18px 40px; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius: 14px; padding: 14px; margin-top: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.03); }
+    label { display:block; font-weight: 700; margin: 10px 0 6px; }
+    input[type="text"], textarea { width: 100%; box-sizing: border-box; border:1px solid #d1d5db; border-radius: 10px; padding: 10px 12px; font-size: 14px; background:#fff; }
+    textarea { min-height: 180px; resize: vertical; }
+    .row { display:flex; gap: 10px; flex-wrap: wrap; }
+    .row > * { flex: 1 1 280px; }
+    .btns { display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    button { border: 0; border-radius: 10px; padding: 10px 12px; font-weight: 800; cursor: pointer; }
+    .primary { background:#2563eb; color:#fff; }
+    .ghost { background:#e5e7eb; color:#111; }
+    .pill { display:inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: 12px; }
+    .pill.low { background:#dcfce7; color:#166534; }
+    .pill.mid { background:#fef9c3; color:#854d0e; }
+    .pill.high { background:#fee2e2; color:#991b1b; }
+    .muted { color:#6b7280; font-size: 13px; }
+    .reasons { margin: 10px 0 0; padding-left: 18px; }
+    .reasons li { margin: 6px 0; }
+    details { margin-top: 10px; }
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 760px){ .grid2{ grid-template-columns: 1fr; } }
+    .small { font-size: 12px; color:#6b7280; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>詐欺広告チェッカー v0.1（求人/副業広告の怪しさ診断）</h1>
+  </header>
+
+  <main>
+    <div class="card">
+      <div class="row">
+        <div>
+          <label for="url">URL（任意）</label>
+          <input id="url" type="text" placeholder="https://example.com/..." />
+          <div class="small">※URLだけでも簡易チェックします（短縮URLなど）</div>
+        </div>
+        <div>
+          <label for="category">想定カテゴリ</label>
+          <input id="category" type="text" placeholder="例：求人 / 副業 / 投資 / 物販 / SNS運用" />
+          <div class="small">※現状は参考程度（将来、カテゴリ別ルールに分岐できます）</div>
+        </div>
+      </div>
+
+      <label for="text">広告文・求人文（コピペ）</label>
+      <textarea id="text" placeholder="ここに求人広告の本文や誘導文を貼り付けてください（会社名/仕事内容/報酬/応募導線など）"></textarea>
+
+      <div class="btns">
+        <button class="primary" id="btnCheck">チェックする</button>
+        <button class="ghost" id="btnReset">リセット</button>
+        <button class="ghost" id="btnExample">例文を入れる</button>
+      </div>
+
+      <p class="muted">
+        ⚠️これは「詐欺を断定」するツールではなく、<b>怪しい兆候</b>を機械的に拾って可視化するものです。最終判断は必ず追加調査で。
+      </p>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none;">
+      <div class="row" style="align-items:center;">
+        <div>
+          <div class="muted">リスクスコア</div>
+          <div style="font-size:34px; font-weight:900; line-height:1.1;">
+            <span id="score">0</span><span class="muted" style="font-size:16px;"> / 100</span>
+          </div>
+        </div>
+        <div>
+          <div class="muted">判定</div>
+          <div id="levelPill" class="pill low">低</div>
+          <div class="small" id="levelNote"></div>
+        </div>
+      </div>
+
+      <hr style="border:0;border-top:1px solid #e5e7eb;margin:12px 0;">
+
+      <div class="muted">引っかかった理由</div>
+      <ul class="reasons" id="reasons"></ul>
+
+      <details>
+        <summary><b>次にやるべき確認（推奨）</b></summary>
+        <ul class="reasons">
+          <li>会社名＋「評判」「行政処分」「被害」「返金」「クーリングオフ」で検索</li>
+          <li>所在地・法人名があるか（法人番号/登記情報の整合性）</li>
+          <li>仕事内容が具体的か（誰が・何を・どの範囲で・成果物は何か）</li>
+          <li>報酬体系が明確か（時給/単価/手数料/控除/条件）</li>
+          <li>応募導線が通常（公式サイト/メール）か、外部SNS/個人LINEに寄せてないか</li>
+          <li>前払い/教材/登録料/保証金/「まず購入」などが無いか</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary><b>デバッグ情報</b></summary>
+        <pre class="mono" id="debug"></pre>
+      </details>
+    </div>
+
+    <div class="card">
+      <b>カスタム辞書（任意）</b>
+      <div class="muted">あなたが見つけた“怪しい言い回し”を追加すると精度が上がります。</div>
+      <div class="grid2" style="margin-top:10px;">
+        <div>
+          <label for="customKeywords">追加キーワード（1行=1個）</label>
+          <textarea id="customKeywords" placeholder="例：初期費用 / 登録料 / 返金保証 / 誰でも簡単 / 紹介制度 ..." style="min-height:120px;"></textarea>
+        </div>
+        <div>
+          <label for="customWeights">追加キーワードの重み（任意、同じ行数）</label>
+          <textarea id="customWeights" placeholder="例：10\n8\n12\n6 ..." style="min-height:120px;"></textarea>
+          <div class="small">空なら一律 6 点。行数が合わない場合は自動で丸めます。</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+<script>
+(() => {
+  // ルール：キーワード/正規表現 + スコア + 理由
+  const BASE_RULES = [
+    { re: /LINE(で|に|追加|登録|連絡|誘導)/i, score: 18, why: "LINE誘導（個人連絡先に寄せる募集は要注意）" },
+    { re: /(Discord|Telegram|WhatsApp|WeChat|カカオ|Kakao)/i, score: 12, why: "外部チャットアプリ誘導（本人確認が曖昧になりやすい）" },
+    { re: /(前払い|先払い|初期費用|登録料|保証金|デポジット|入会金|教材費|サロン費)/, score: 22, why: "前払い/費用請求（典型的な詐欺パターン）" },
+    { re: /(返金保証|全額返金|絶対に稼げる|必ず稼げる|確実に|100%)/, score: 16, why: "過剰な保証・断定表現（誇大広告の兆候）" },
+    { re: /(誰でも|未経験OK|初心者OK).*(月収|日給|時給|万円|高収入)/, score: 12, why: "簡単さ×高収入の組み合わせ（釣り文句になりやすい）" },
+    { re: /(スマホだけ|コピペだけ|タップするだけ|放置で|自動で)/, score: 12, why: "作業が楽すぎる主張（実態が曖昧なことが多い）" },
+    { re: /(即日|当日|すぐに|最短).*(入金|振込|報酬)/, score: 10, why: "即日入金・即金アピール（焦らせる導線）" },
+    { re: /(面談なし|審査なし|本人確認不要|身分証不要)/, score: 14, why: "本人確認を軽視（まともな雇用・取引では不自然）" },
+    { re: /(秘密の|限定|今だけ|残り\d+枠|急募|本日締切|先着)/, score: 10, why: "希少性/緊急性で焦らせる" },
+    { re: /(仕事内容は(面談で|後ほど|個別に)|詳細は(連絡後|登録後)|具体的な内容は非公開)/, score: 18, why: "仕事内容が不明確（後出しで条件が変わりやすい）" },
+    { re: /(アフィリエイト|情報商材|サロン|コミュニティ|スクール|コンサル)/, score: 10, why: "情報商材/スクール系ワード（費用請求に繋がりやすい）" },
+    { re: /(投資|FX|仮想通貨|暗号資産|バイナリー|高配当)/, score: 10, why: "投資系ワード（詐欺が混ざりやすい領域）" },
+  ];
+
+  // URL簡易チェック（ローカルでできる範囲）
+  const URL_RULES = [
+    { re: /bit\.ly|t\.co|tinyurl|is\.gd|cutt\.ly|rebrand\.ly/i, score: 18, why: "短縮URL（遷移先を隠しやすい）" },
+    { re: /xn--/i, score: 16, why: "Punycodeドメイン（見た目偽装の可能性）" },
+    { re: /\.(top|xyz|icu|live|click|bond|loan|win|work|shop|site)(\/|$)/i, score: 8, why: "詐欺に使われやすいTLD（※断定ではない）" },
+    { re: /\/(lp|landing|offer|click|track)\b/i, score: 6, why: "LP/トラッキング系パス（広告導線の可能性）" },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+
+  function normalizeText(s){
+    return (s || "")
+      .replace(/\u3000/g, " ")
+      .replace(/[‐-‒–—−]/g, "-")
+      .trim();
+  }
+
+  function buildCustomRules(){
+    const kws = normalizeText($("customKeywords").value).split("\n").map(x=>x.trim()).filter(Boolean);
+    const ws  = normalizeText($("customWeights").value).split("\n").map(x=>x.trim()).filter(Boolean);
+    const rules = [];
+    for(let i=0;i<kws.length;i++){
+      const kw = kws[i];
+      const w = Number(ws[i] ?? "");
+      const score = Number.isFinite(w) && w>0 ? Math.min(40, w) : 6;
+      // キーワードを安全に正規表現化（ざっくり）
+      const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      rules.push({ re: new RegExp(escaped, "i"), score, why: `カスタム：${kw}` });
+    }
+    return rules;
+  }
+
+  function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+  function check(){
+    const url = normalizeText($("url").value);
+    const text = normalizeText($("text").value);
+    const allText = (url ? url + "\n" : "") + text;
+
+    const hits = [];
+    let score = 0;
+
+    const customRules = buildCustomRules();
+    const rules = [...URL_RULES, ...BASE_RULES, ...customRules];
+
+    for(const r of rules){
+      if(r.re.test(allText)){
+        hits.push({ why: r.why, score: r.score, re: String(r.re) });
+        score += r.score;
+      }
+    }
+
+    // 追加のヒューリスティック：情報の欠落（ざっくり）
+    // 会社名っぽいもの / 住所っぽいもの / 電話っぽいものがゼロだと不安材料
+    const hasCompany = /(株式会社|有限会社|合同会社|Inc\.|LLC|Co\.)/.test(text);
+    const hasPhone = /0\d{1,4}-\d{1,4}-\d{3,4}/.test(text) || /\b0\d{9,10}\b/.test(text);
+    const hasAddr = /(都|道|府|県).*(市|区|町|村)/.test(text);
+
+    if(text.length >= 80){
+      if(!hasCompany){ score += 8; hits.push({ why:"会社名（法人格）情報が見当たらない", score:8, re:"(heuristic)"}); }
+      if(!hasPhone){ score += 6; hits.push({ why:"電話番号が見当たらない（連絡先がSNSのみ等の可能性）", score:6, re:"(heuristic)"}); }
+      if(!hasAddr){ score += 6; hits.push({ why:"所在地が見当たらない（運営実体が不明瞭な可能性）", score:6, re:"(heuristic)"}); }
+    }
+
+    // スコア正規化
+    score = clamp(score, 0, 100);
+
+    // レベル判定
+    let level = "低", cls="low", note="大きな危険サインは少なめ。とはいえ追加確認は推奨。";
+    if(score >= 70){ level="高"; cls="high"; note="危険サインが多い。応募/入金/個人情報送付の前に強く再確認。"; }
+    else if(score >= 40){ level="中"; cls="mid"; note="注意サインあり。会社実体・条件・導線を必ず確認。"; }
+
+    // 表示
+    $("resultCard").style.display = "block";
+    $("score").textContent = String(score);
+    const pill = $("levelPill");
+    pill.textContent = level;
+    pill.className = `pill ${cls}`;
+    $("levelNote").textContent = note;
+
+    const ul = $("reasons");
+    ul.innerHTML = "";
+    if(hits.length === 0){
+      const li = document.createElement("li");
+      li.textContent = "明確なキーワードヒットはありませんでした（＝安全確定ではありません）";
+      ul.appendChild(li);
+    } else {
+      // 重い順に並べる
+      hits.sort((a,b)=>b.score-a.score);
+      for(const h of hits){
+        const li = document.createElement("li");
+        li.textContent = `+${h.score}点：${h.why}`;
+        ul.appendChild(li);
+      }
+    }
+
+    $("debug").textContent = JSON.stringify({
+      url, textLength: text.length,
+      derived: { hasCompany, hasPhone, hasAddr },
+      hitsCount: hits.length,
+      hits
+    }, null, 2);
+  }
+
+  function reset(){
+    $("url").value = "";
+    $("category").value = "";
+    $("text").value = "";
+    $("resultCard").style.display = "none";
+  }
+
+  function example(){
+    $("url").value = "https://bit.ly/xxxxxx";
+    $("category").value = "副業";
+    $("text").value =
+`【今だけ限定】スマホだけで月収50万円も可能！
+未経験OK・審査なし・面談なし。まずはLINE追加で詳細をお送りします。
+登録料3,000円（返金保証あり）／残り3枠です。`;
+  }
+
+  $("btnCheck").addEventListener("click", check);
+  $("btnReset").addEventListener("click", reset);
+  $("btnExample").addEventListener("click", example);
+})();
+</script>
+</body>
+</html>
