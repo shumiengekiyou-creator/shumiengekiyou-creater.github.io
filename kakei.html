@@ -2,140 +2,521 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>家計メモ</title>
   <style>
-    body { font-family: sans-serif; margin: 24px; max-width: 900px; }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    input, select, button { padding: 10px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 14px; }
-    th, td { border-bottom: 1px solid #ddd; padding: 10px; text-align: left; }
-    .meta { color: #666; font-size: 0.9em; }
-    .right { text-align: right; }
-    .danger { background: #fff2f2; border: 1px solid #ffd1d1; }
+    :root{
+      --bg:#f7f7fb;
+      --card:#ffffff;
+      --ink:#1f2328;
+      --muted:#667085;
+      --line:#e6e8ef;
+      --danger:#b42318;
+    }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      padding:18px;
+    }
+    .wrap{ max-width: 980px; margin: 0 auto; }
+    header{
+      display:flex; gap:12px; align-items:baseline; justify-content:space-between;
+      margin-bottom: 14px;
+    }
+    h1{ margin:0; font-size:22px; letter-spacing:.03em; }
+    .sub{ color:var(--muted); font-size:12px; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 900px){
+      .grid{ grid-template-columns: 360px 1fr; }
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.05);
+    }
+    .row{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      margin-top: 10px;
+    }
+    label{
+      display:flex; flex-direction:column; gap:6px;
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 120px;
+      flex: 1;
+    }
+    input, select, textarea, button{
+      font: inherit;
+    }
+    input, select, textarea{
+      border:1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 10px;
+      background:#fff;
+      color: var(--ink);
+      outline: none;
+    }
+    textarea{ resize: vertical; min-height: 76px; }
+    input:focus, select:focus, textarea:focus{
+      border-color:#c9cbe3;
+      box-shadow: 0 0 0 3px rgba(100,116,139,.12);
+    }
+
+    .btnrow{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }
+    button{
+      border:1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background:#fff;
+      cursor:pointer;
+    }
+    button.primary{
+      background:#111827;
+      color:#fff;
+      border-color:#111827;
+    }
+    button.danger{
+      color:#fff;
+      background: var(--danger);
+      border-color: var(--danger);
+    }
+    button:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .summary{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+      margin-top: 10px;
+    }
+    .pill{
+      border:1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background:#fff;
+    }
+    .pill .k{ font-size:12px; color:var(--muted); }
+    .pill .v{ margin-top:4px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .tools{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+      margin-bottom: 10px;
+    }
+    .tools .left, .tools .right{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    }
+
+    table{ width:100%; border-collapse: collapse; }
+    th, td{
+      border-bottom:1px solid var(--line);
+      padding: 10px 8px;
+      text-align:left;
+      font-size: 13px;
+      vertical-align: top;
+    }
+    th{ color: var(--muted); font-weight: 600; }
+    .amt{ text-align:right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .muted{ color:var(--muted); }
+    .mini{ font-size:12px; }
+    .actions{ white-space: nowrap; text-align:right; }
+    .linkbtn{
+      border:none; background:transparent; padding:6px 8px; cursor:pointer;
+      color:#2563eb;
+    }
+    .linkbtn.d{ color: var(--danger); }
+    .tag{
+      display:inline-block;
+      border:1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-right: 6px;
+    }
   </style>
 </head>
 <body>
-  <h1>家計メモ</h1>
-  <p class="meta">※この家計メモはブラウザ（このPC）に保存されます（localStorage）。</p>
-  <p><a href="index.html">← トップへ</a></p>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>家計メモ</h1>
+        <div class="sub">ブラウザ保存（localStorage） / 追加・編集・削除 / 合計表示</div>
+      </div>
+      <div class="sub" id="savedInfo">保存先：この端末のブラウザ</div>
+    </header>
 
-  <div class="row">
-    <input id="date" type="date">
-    <select id="type">
-      <option value="支出">支出</option>
-      <option value="収入">収入</option>
-    </select>
-    <input id="cat" type="text" placeholder="カテゴリ（例：食費）" style="min-width:160px;">
-    <input id="memo" type="text" placeholder="メモ（例：スーパー）" style="flex:1; min-width:220px;">
-    <input id="yen" type="text" inputmode="numeric" placeholder="金額(例:1000/1,000)" style=width:140px;">
-    <button id="add">追加</button>
+    <div class="grid">
+      <!-- 左：入力 -->
+      <section class="card" aria-label="入力">
+        <div class="muted mini">※ 金額は <b>1000</b> / <b>1,000</b> / <b>¥1000</b> みたいに自由入力OK</div>
+
+        <div class="row">
+          <label>
+            日付
+            <input id="date" type="date" />
+          </label>
+
+          <label>
+            種別
+            <select id="type">
+              <option value="expense">支出</option>
+              <option value="income">収入</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="row">
+          <label>
+            カテゴリ
+            <select id="cat">
+              <option value="食費">食費</option>
+              <option value="日用品">日用品</option>
+              <option value="交通">交通</option>
+              <option value="娯楽">娯楽</option>
+              <option value="美容">美容</option>
+              <option value="医療">医療</option>
+              <option value="固定費">固定費</option>
+              <option value="その他">その他</option>
+            </select>
+          </label>
+
+          <label>
+            金額
+            <input id="yen" type="text" inputmode="numeric" placeholder="例：1,000" />
+          </label>
+        </div>
+
+        <div class="row">
+          <label style="min-width: 100%;">
+            メモ
+            <textarea id="memo" placeholder="例：コンビニ / 電車 / サブスク など"></textarea>
+          </label>
+        </div>
+
+        <div class="btnrow">
+          <button class="primary" id="btnAdd">追加</button>
+          <button id="btnCancelEdit" disabled>編集キャンセル</button>
+          <button class="danger" id="btnClearAll">全削除</button>
+        </div>
+
+        <div class="summary" aria-label="合計">
+          <div class="pill">
+            <div class="k">支出 合計</div>
+            <div class="v" id="sumExpense">¥0</div>
+          </div>
+          <div class="pill">
+            <div class="k">収入 合計</div>
+            <div class="v" id="sumIncome">¥0</div>
+          </div>
+          <div class="pill">
+            <div class="k">差引</div>
+            <div class="v" id="sumNet">¥0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右：一覧 -->
+      <section class="card" aria-label="一覧">
+        <div class="tools">
+          <div class="left">
+            <label style="min-width: 180px;">
+              フィルタ（カテゴリ）
+              <select id="filterCat">
+                <option value="">すべて</option>
+                <option value="食費">食費</option>
+                <option value="日用品">日用品</option>
+                <option value="交通">交通</option>
+                <option value="娯楽">娯楽</option>
+                <option value="美容">美容</option>
+                <option value="医療">医療</option>
+                <option value="固定費">固定費</option>
+                <option value="その他">その他</option>
+              </select>
+            </label>
+
+            <label style="min-width: 160px;">
+              フィルタ（種別）
+              <select id="filterType">
+                <option value="">すべて</option>
+                <option value="expense">支出</option>
+                <option value="income">収入</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="right">
+            <button id="btnExport">エクスポート</button>
+            <button id="btnImport">インポート</button>
+          </div>
+        </div>
+
+        <div class="muted mini" id="countInfo"></div>
+
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:110px;">日付</th>
+                <th style="min-width:90px;">種別</th>
+                <th style="min-width:90px;">カテゴリ</th>
+                <th>メモ</th>
+                <th class="amt" style="min-width:120px;">金額</th>
+                <th class="actions" style="min-width:120px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
   </div>
 
-  <div class="row" style="margin-top:12px;">
-    <button id="clear" class="danger">全削除（このPCの保存分）</button>
-  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const KEY = "kakei_v1";
 
-  <h2>集計</h2>
-  <div class="row">
-    <div>収入：<strong id="in">0</strong> 円</div>
-    <div>支出：<strong id="out">0</strong> 円</div>
-    <div>差額：<strong id="bal">0</strong> 円</div>
-  </div>
+    let editingId = null;
 
-  <h2>明細</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>日付</th><th>種別</th><th>カテゴリ</th><th>メモ</th><th class="right">金額</th><th></th>
-      </tr>
-    </thead>
-    <tbody id="tbody"></tbody>
-  </table>
-
-<script>
-  const KEY = "my_kakei_v1";
-  const $ = (id) => document.getElementById(id);
-
-  function load(){ try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return[]} }
-  function save(arr){ localStorage.setItem(KEY, JSON.stringify(arr)); }
-
-  function render(){
-    const rows = load();
-    const tb = $("tbody");
-    tb.innerHTML = "";
-
-    let income = 0, expense = 0;
-
-    rows.forEach((r, i) => {
-      const tr = document.createElement("tr");
-      const amt = Number(r.yen || 0);
-      if (r.type === "収入") income += amt; else expense += amt;
-
-      tr.innerHTML = `
-        <td>${r.date || ""}</td>
-        <td>${r.type}</td>
-        <td>${escapeHtml(r.cat)}</td>
-        <td>${escapeHtml(r.memo)}</td>
-        <td class="right">${amt.toLocaleString()}</td>
-        <td><button data-i="${i}">削除</button></td>
-      `;
-      tr.querySelector("button").onclick = () => {
-        const arr = load();
-        arr.splice(i,1);
-        save(arr);
-        render();
-      };
-      tb.appendChild(tr);
-    });
-
-    $("in").textContent = income.toLocaleString();
-    $("out").textContent = expense.toLocaleString();
-    $("bal").textContent = (income - expense).toLocaleString();
-  }
-
-  function normalizeyen(s){
-    if (!s) return "";
-    
-    return (s ?? "").replace(/[&<>"']/g, (c) =>
-    //  全角数字→半角、カンマ/￥/円/空白を除去
-      return s
-    .toString()
-      .trim()
-      .replace(/[0-9]/g, c=> String.fromCharCode(c.charCodeAt(0) -0xFEE0))
-      .rerplace(/[,\s￥円]/g, "");
-  }
-  $("add").onclick = () => {
-    const date = $("date").value;
-    const type = $("type").value;
-    const cat = $("cat").value.trim();
-    const memo = $("memo").value.trim();
-
-    const yenRaw = $("yen").value;
-    const yenStr = normalizeYen(yenRaw);
-    const yen = parseInt(yenStr, 10);
-    
-    if (!date || !yenStr || Number.isNaN(yen)) { alert("日付と金額は必須だよ！(例:1000/ 1,000)"); return; 
+    function nowYMD(){
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const da = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${da}`;
     }
 
-    const arr = load();
-    arr.push({ date, type, cat, memo, yen });
-    save(arr);
+    function formatYen(n){
+      const sign = n < 0 ? "-" : "";
+      const abs = Math.abs(n);
+      return sign + "¥" + abs.toLocaleString("ja-JP");
+    }
 
-    $("cat").value = "";
-    $("memo").value = "";
-    $("yen").value = "";
-    render();
-  };
+    // "1,000" / "¥1000" / "１０００" / "1000円" → "1000"
+    function normalizeYen(s){
+      if (s == null) return "";
+      return s.toString().trim()
+        .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+        .replace(/[,\s¥円]/g, "");
+    }
 
-  $("clear").onclick = () => {
-    if (confirm("このPCに保存されている家計メモを全削除します。OK？")) {
-      localStorage.removeItem(KEY);
+    function load(){
+      try{
+        const raw = localStorage.getItem(KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      }catch{
+        return [];
+      }
+    }
+
+    function save(arr){
+      localStorage.setItem(KEY, JSON.stringify(arr));
+    }
+
+    function calcSums(arr){
+      let exp = 0, inc = 0;
+      for (const x of arr){
+        if (x.type === "expense") exp += x.yen;
+        else inc += x.yen;
+      }
+      return { exp, inc, net: inc - exp };
+    }
+
+    function getFiltered(arr){
+      const fc = $("filterCat").value;
+      const ft = $("filterType").value;
+      return arr.filter(x => (fc ? x.cat === fc : true) && (ft ? x.type === ft : true));
+    }
+
+    function render(){
+      const arr = load().sort((a,b) => (b.date || "").localeCompare(a.date || "") || (b.id - a.id));
+      const filtered = getFiltered(arr);
+
+      // 合計（フィルタ後の合計がわかりやすいので、フィルタ後を表示）
+      const sums = calcSums(filtered);
+      $("sumExpense").textContent = formatYen(sums.exp);
+      $("sumIncome").textContent = formatYen(sums.inc);
+      $("sumNet").textContent = formatYen(sums.net);
+
+      $("countInfo").textContent = `表示：${filtered.length}件 / 全体：${arr.length}件`;
+
+      const tb = $("tbody");
+      tb.innerHTML = "";
+
+      for (const x of filtered){
+        const tr = document.createElement("tr");
+
+        const typeLabel = x.type === "expense" ? "支出" : "収入";
+        const memo = (x.memo || "").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+        tr.innerHTML = `
+          <td>${x.date || ""}</td>
+          <td><span class="tag">${typeLabel}</span></td>
+          <td>${x.cat || ""}</td>
+          <td class="muted">${memo}</td>
+          <td class="amt">${formatYen(x.yen)}</td>
+          <td class="actions">
+            <button class="linkbtn" data-act="edit" data-id="${x.id}">編集</button>
+            <button class="linkbtn d" data-act="del" data-id="${x.id}">削除</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      }
+    }
+
+    function clearForm(){
+      editingId = null;
+      $("btnAdd").textContent = "追加";
+      $("btnCancelEdit").disabled = true;
+      $("type").disabled = false;
+
+      $("date").value = nowYMD();
+      $("type").value = "expense";
+      $("cat").value = "食費";
+      $("yen").value = "";
+      $("memo").value = "";
+      $("yen").focus();
+    }
+
+    function startEdit(id){
+      const arr = load();
+      const item = arr.find(x => x.id === id);
+      if (!item) return;
+
+      editingId = id;
+      $("btnAdd").textContent = "更新";
+      $("btnCancelEdit").disabled = false;
+
+      $("date").value = item.date || nowYMD();
+      $("type").value = item.type || "expense";
+      $("cat").value = item.cat || "その他";
+      $("yen").value = String(item.yen ?? "");
+      $("memo").value = item.memo || "";
+
+      // 編集中に種別変えると計算がややこしくなるので固定（嫌なら消してOK）
+      $("type").disabled = true;
+
+      $("yen").focus();
+    }
+
+    function upsert(){
+      const date = $("date").value;
+      const type = $("type").value;
+      const cat  = $("cat").value;
+      const memo = $("memo").value.trim();
+
+      const yenStr = normalizeYen($("yen").value);
+      const yen = parseInt(yenStr, 10);
+
+      if (!date) { alert("日付は必須だよ"); return; }
+      if (!yenStr || Number.isNaN(yen)) { alert("金額が変だよ（例：1000 / 1,000 / ¥1000）"); return; }
+      if (yen < 0) { alert("金額はマイナスじゃなくてOK（種別で表現しよう）"); return; }
+
+      const arr = load();
+
+      if (editingId == null){
+        arr.push({
+          id: Date.now(),
+          date, type, cat,
+          memo,
+          yen
+        });
+      } else {
+        const idx = arr.findIndex(x => x.id === editingId);
+        if (idx >= 0){
+          arr[idx] = { ...arr[idx], date, cat, memo, yen };
+        }
+      }
+
+      save(arr);
+      clearForm();
       render();
     }
-  };
 
-  render();
-</script>
+    function removeItem(id){
+      const arr = load();
+      const next = arr.filter(x => x.id !== id);
+      save(next);
+      if (editingId === id) clearForm();
+      render();
+    }
+
+    function exportData(){
+      const data = JSON.stringify(load(), null, 2);
+      // クリップボードにコピー（ダメならalertで表示）
+      navigator.clipboard?.writeText(data).then(() => {
+        alert("エクスポート（JSON）をクリップボードにコピーしたよ");
+      }).catch(() => {
+        prompt("これをコピーして保存してね（JSON）", data);
+      });
+    }
+
+    function importData(){
+      const txt = prompt("インポートするJSONを貼ってね（上書きされるよ）");
+      if (!txt) return;
+      try{
+        const arr = JSON.parse(txt);
+        if (!Array.isArray(arr)) throw new Error("not array");
+        // 最低限の形を整える
+        const cleaned = arr.map(x => ({
+          id: Number(x.id) || Date.now() + Math.floor(Math.random()*10000),
+          date: String(x.date || ""),
+          type: (x.type === "income" ? "income" : "expense"),
+          cat: String(x.cat || "その他"),
+          memo: String(x.memo || ""),
+          yen: Math.max(0, Number(x.yen) || 0),
+        }));
+        save(cleaned);
+        clearForm();
+        render();
+        alert("インポートしたよ！");
+      }catch{
+        alert("JSONが壊れてるか形式が違うっぽい…");
+      }
+    }
+
+    // ---- events ----
+    $("btnAdd").addEventListener("click", upsert);
+    $("btnCancelEdit").addEventListener("click", clearForm);
+
+    $("btnClearAll").addEventListener("click", () => {
+      if (!confirm("全部消す？（元に戻せない）")) return;
+      localStorage.removeItem(KEY);
+      clearForm();
+      render();
+    });
+
+    $("filterCat").addEventListener("change", render);
+    $("filterType").addEventListener("change", render);
+
+    $("btnExport").addEventListener("click", exportData);
+    $("btnImport").addEventListener("click", importData);
+
+    $("tbody").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-act]");
+      if (!btn) return;
+      const id = Number(btn.dataset.id);
+      const act = btn.dataset.act;
+      if (act === "edit") startEdit(id);
+      if (act === "del"){
+        if (!confirm("削除する？")) return;
+        removeItem(id);
+      }
+    });
+
+    // 初期化
+    $("date").value = nowYMD();
+    render();
+  </script>
 </body>
 </html>
+
